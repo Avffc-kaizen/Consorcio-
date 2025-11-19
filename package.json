@@ -1,5 +1,5 @@
 {
-  "name": "consórcio-inteligente-ai",
+  "name": "aquisição-estratégica",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,7 +12,8 @@
     "react-dom": "^19.2.0",
     "@google/genai": "^1.29.1",
     "react": "^19.2.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "react-router-dom": "^6.25.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

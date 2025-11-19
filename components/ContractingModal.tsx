@@ -1,178 +1,97 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import type { RecommendedPlan } from '../services/geminiService';
-import type { UserProfile, ConsorcioPlan } from '../types';
+import type { UserProfile } from '../types';
 
 interface ContractingModalProps {
     plan: RecommendedPlan;
     userProfile: UserProfile;
     onClose: () => void;
-    onSubmit: (userProfile: UserProfile, plan: ConsorcioPlan) => Promise<{ success: boolean; proposalId: string }>;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onSubmit: (userProfile: UserProfile, plan: any) => Promise<any>; // Kept for signature compatibility but unused in new flow
+    onSuccess: () => void;
 }
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-export const ContractingModal: React.FC<ContractingModalProps> = ({ plan, userProfile, onClose, onSubmit }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submissionResult, setSubmissionResult] = useState<{ success: boolean; proposalId: string } | null>(null);
-    const [termsAgreed, setTermsAgreed] = useState(false);
-    const [dataConfirmed, setDataConfirmed] = useState(false);
+export const ContractingModal: React.FC<ContractingModalProps> = ({ plan, userProfile, onClose, onSuccess }) => {
 
-    useEffect(() => {
-        const handleEsc = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-        window.addEventListener('keydown', handleEsc);
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
-
-    const handleSubmit = async () => {
-        if (!termsAgreed || !dataConfirmed) {
-            alert('Por favor, confirme seus dados e aceite os termos para continuar.');
-            return;
-        }
-        setIsSubmitting(true);
-        try {
-            const result = await onSubmit(userProfile, plan);
-            setSubmissionResult(result);
-        } catch (error) {
-            console.error("Submission failed", error);
-            setSubmissionResult({ success: false, proposalId: 'ERROR' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
-    const canSubmit = termsAgreed && dataConfirmed && !isSubmitting;
-
-    const renderContent = () => {
-        if (isSubmitting) {
-            return (
-                <div className="text-center p-10">
-                    <svg className="animate-spin mx-auto h-12 w-12 text-cyan-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <h3 className="mt-4 text-xl font-semibold">Enviando sua Proposta</h3>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">Aguarde um momento, estamos conectando com os sistemas da Porto Seguro...</p>
-                </div>
-            );
-        }
-
-        if (submissionResult?.success) {
-            return (
-                <div className="text-center p-10">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <h3 className="mt-4 text-2xl font-bold text-green-600 dark:text-green-400">Proposta Enviada com Sucesso!</h3>
-                    <p className="mt-2 text-gray-700 dark:text-gray-300">Sua proposta para o plano <strong>{plan.planName}</strong> foi registrada.</p>
-                    <div className="mt-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Número da Proposta:</p>
-                        <p className="text-lg font-mono font-semibold text-gray-800 dark:text-gray-200">{submissionResult.proposalId}</p>
-                    </div>
-                     <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">Um consultor da Porto Seguro entrará em contato em breve para os próximos passos. A proposta formal será enviada para o seu e-mail: <strong>{userProfile.contact?.email}</strong>.</p>
-                </div>
-            );
-        }
-
-        if (submissionResult && !submissionResult.success) {
-             return (
-                <div className="text-center p-10">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <h3 className="mt-4 text-2xl font-bold text-red-600 dark:text-red-400">Ocorreu um Erro</h3>
-                    <p className="mt-2 text-gray-700 dark:text-gray-300">Não foi possível processar sua proposta no momento. Por favor, tente novamente mais tarde ou entre em contato com nosso suporte.</p>
-                </div>
-             );
-        }
+    const handleWhatsAppRedirect = () => {
+        const phoneNumber = '5561999949724'; // Updated requested number
+        const message = `Olá! Realizei uma simulação na plataforma EAP e gostaria de contratar o consórcio:
         
-        // Initial form view
-        return (
-            <>
-            <main className="p-6 space-y-6">
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">1. Resumo do Plano Estratégico</h3>
-                    <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Plano</p>
-                            <p className="font-semibold">{plan.planName}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Provedor</p>
-                            <p className="font-semibold">{plan.provider}</p>
-                        </div>
-                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Crédito</p>
-                            <p className="font-bold text-cyan-600 dark:text-cyan-400 text-lg">{formatCurrency(plan.assetValue)}</p>
-                        </div>
-                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Parcela Mensal</p>
-                            <p className="font-semibold">{formatCurrency(plan.monthlyInstallment)}</p>
-                        </div>
-                    </div>
-                </div>
+*Plano:* ${plan.planName} (${plan.provider})
+*Crédito:* ${formatCurrency(plan.assetValue)}
+*Parcela:* ${formatCurrency(plan.monthlyInstallment)}
+*Prazo:* ${plan.termInMonths} meses
 
-                <div>
-                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">2. Confirmação dos Dados</h3>
-                     <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 space-y-2">
-                         <p><strong>Nome:</strong> {userProfile.contact?.name}</p>
-                         <p><strong>E-mail:</strong> {userProfile.contact?.email}</p>
-                         <p><strong>Telefone:</strong> {userProfile.contact?.phone}</p>
-                         <div className="pt-2">
-                             <label htmlFor="data-confirm" className="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="data-confirm" checked={dataConfirmed} onChange={(e) => setDataConfirmed(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">Confirmo que os dados acima estão corretos.</span>
-                             </label>
-                         </div>
-                     </div>
-                </div>
+*Meus Dados:*
+Nome: ${userProfile.contact?.name}
+Email: ${userProfile.contact?.email}
 
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">3. Termos e Condições</h3>
-                    <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                        <div className="max-h-24 overflow-y-auto text-xs text-gray-600 dark:text-gray-400 pr-2 space-y-2">
-                            <p>Ao clicar em "Finalizar Contratação", você concorda em enviar seus dados para a Porto Seguro Consórcio para a formalização de uma proposta de adesão ao grupo de consórcio referente ao plano selecionado.</p>
-                            <p>Esta ação não garante a contemplação imediata. A Porto Seguro analisará sua proposta e, se aprovada, você será incluído no próximo grupo a ser formado. Todas as regras de contemplação, lance e reajustes estão descritas no contrato de adesão que será enviado para seu e-mail.</p>
-                        </div>
-                        <div className="pt-3 mt-2 border-t border-gray-200 dark:border-gray-600">
-                             <label htmlFor="terms-agree" className="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="terms-agree" checked={termsAgreed} onChange={(e) => setTermsAgreed(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">Li e concordo com os termos da proposta.</span>
-                             </label>
-                        </div>
-                    </div>
-                </div>
+Gostaria de saber os próximos passos para adesão e confirmar a disponibilidade deste grupo.`;
 
-            </main>
-            </>
-        );
-    }
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+        
+        // Close modal after redirect
+        onSuccess();
+        onClose();
+    };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="contracting-modal-title">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 id="contracting-modal-title" className="text-xl font-bold text-gray-900 dark:text-white">
-                        {submissionResult?.success ? 'Contratação Finalizada' : 'Painel de Contratação Porto Seguro'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" aria-label="Fechar modal">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="contracting-modal-title">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+                
+                {/* Header with gradient */}
+                <div className="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white text-center">
+                    <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 backdrop-blur-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold">Plano Reservado!</h3>
+                    <p className="text-green-50 opacity-90 text-sm mt-1">Próximo passo: Validação de disponibilidade</p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <div className="text-center">
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                            Para garantir as condições especiais do plano <strong>{plan.planName}</strong> e a taxa de administração de <strong>{plan.adminFee > 1 ? plan.adminFee : plan.adminFee * 100}%</strong>, finalize sua adesão diretamente com nossa mesa de negócios.
+                        </p>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-600 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Crédito</span>
+                            <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(plan.assetValue)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Parcela Mensal</span>
+                            <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(plan.monthlyInstallment)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Provedor</span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">{plan.provider}</span>
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={handleWhatsAppRedirect}
+                        className="w-full group relative flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-300 shadow-lg shadow-green-600/30 hover:-translate-y-1"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                        Finalizar no WhatsApp
                     </button>
-                </header>
-                {renderContent()}
-                <footer className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                    <button onClick={onClose} className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white font-bold py-2 px-6 rounded-md transition-colors">
-                        {submissionResult ? 'Fechar' : 'Cancelar'}
-                    </button>
-                    {!submissionResult && (
-                        <button onClick={handleSubmit} disabled={!canSubmit} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed">
-                            Finalizar Contratação
+
+                    <div className="text-center">
+                        <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline">
+                            Voltar e escolher outro plano
                         </button>
-                    )}
-                </footer>
+                    </div>
+                </div>
             </div>
         </div>
     );

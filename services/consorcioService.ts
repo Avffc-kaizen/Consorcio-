@@ -1,24 +1,35 @@
+
 import type { ConsorcioPlan } from '../types';
-import { getPortoSeguroPlans } from './portoSeguroApi';
-import { getMapfrePlans } from './mapfreApi';
+import { getAvailableGroups as getPortoGroups } from './portoSeguroApi';
+import { getAvailableGroups as getMapfreGroups } from './mapfreApi';
 
 /**
- * Acts as the "Aggregator Microservice" described in the architecture document.
- * It fetches plans from all configured provider APIs and normalizes them into a single list.
- * This decouples the main application from the individual provider APIs.
- * @returns A promise that resolves to a combined array of all available consórcio plans.
+ * Acts as the "Aggregator Microservice".
+ * It queries all provider APIs based on the user's initial input
+ * to find relevant plans/groups.
+ * @param category The desired asset category.
+ * @param investment The user's planned monthly investment.
+ * @returns A promise that resolves to a combined array of available consórcio plans.
  */
-export const getAllAvailablePlans = async (): Promise<ConsorcioPlan[]> => {
-  console.log('Aggregator service started: Fetching from all providers...');
+export const findAvailablePlans = async (
+  category: 'Automóvel' | 'Imóvel' | 'Serviços',
+  investment: number
+): Promise<ConsorcioPlan[]> => {
+  console.log('Aggregator service started: Searching for plans...');
   
-  // Promise.all allows fetching from multiple sources concurrently
+  // Estimate a target asset value. A simple heuristic can be based on a common term length,
+  // e.g., 80 months for cars, 180 for properties. This guides the API search.
+  const estimatedTerm = category === 'Imóvel' ? 180 : 80;
+  const targetValue = investment * estimatedTerm;
+  
+  // Fetch plans from all providers concurrently
   const [portoPlans, mapfrePlans] = await Promise.all([
-    getPortoSeguroPlans(),
-    getMapfrePlans()
+    getPortoGroups(category, targetValue),
+    getMapfreGroups(category, targetValue)
   ]);
 
-  console.log('Aggregation complete. Total plans loaded:', portoPlans.length + mapfrePlans.length);
+  const allPlans = [...portoPlans, ...mapfrePlans];
+  console.log(`Aggregation complete. Total plans found for user profile: ${allPlans.length}`);
   
-  // Combine the results into a single array
-  return [...portoPlans, ...mapfrePlans];
+  return allPlans;
 };

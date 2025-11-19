@@ -1,3 +1,4 @@
+
 import type { ConsorcioPlan, UserProfile } from '../types';
 
 // In a real scenario, these credentials would be securely managed and used to authenticate API requests.
@@ -6,124 +7,80 @@ import type { ConsorcioPlan, UserProfile } from '../types';
 const API_TOKEN = 'SlpSB09151125121227';
 const API_PASSWORD = 'fszbs30h';
 
-const mockPortoSeguroPlans: ConsorcioPlan[] = [
-  // Automóveis
-  {
-    provider: 'Porto Seguro',
-    planName: 'Moto Urbana',
-    category: 'Automóvel',
-    assetValue: 35000,
-    termInMonths: 60,
-    monthlyInstallment: 650,
-    adminFee: 0.21,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Auto Básico',
-    category: 'Automóvel',
-    assetValue: 80000,
-    termInMonths: 80,
-    monthlyInstallment: 1100,
-    adminFee: 0.18,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Auto Premium',
-    category: 'Automóvel',
-    assetValue: 150000,
-    termInMonths: 72,
-    monthlyInstallment: 2200,
-    adminFee: 0.17,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'SUV Confort',
-    category: 'Automóvel',
-    assetValue: 200000,
-    termInMonths: 60,
-    monthlyInstallment: 3500,
-    adminFee: 0.16,
-  },
-   {
-    provider: 'Porto Seguro',
-    planName: 'Frota Empresarial',
-    category: 'Automóvel',
-    assetValue: 500000,
-    termInMonths: 80,
-    monthlyInstallment: 6600,
-    adminFee: 0.15,
-  },
-  // Imóveis
-  {
-    provider: 'Porto Seguro',
-    planName: 'Meu Apê',
-    category: 'Imóvel',
-    assetValue: 300000,
-    termInMonths: 200,
-    monthlyInstallment: 1650,
-    adminFee: 0.20,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Casa dos Sonhos',
-    category: 'Imóvel',
-    assetValue: 700000,
-    termInMonths: 180,
-    monthlyInstallment: 4100,
-    adminFee: 0.19,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Investidor Imobiliário',
-    category: 'Imóvel',
-    assetValue: 1200000,
-    termInMonths: 200,
-    monthlyInstallment: 6500,
-    adminFee: 0.18,
-  },
-  // Serviços
-  {
-    provider: 'Porto Seguro',
-    planName: 'Viagem Inesquecível',
-    category: 'Serviços',
-    assetValue: 25000,
-    termInMonths: 36,
-    monthlyInstallment: 750,
-    adminFee: 0.25,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Festa dos Sonhos',
-    category: 'Serviços',
-    assetValue: 40000,
-    termInMonths: 40,
-    monthlyInstallment: 1100,
-    adminFee: 0.24,
-  },
-  {
-    provider: 'Porto Seguro',
-    planName: 'Reforma e Construção',
-    category: 'Serviços',
-    assetValue: 50000,
-    termInMonths: 48,
-    monthlyInstallment: 1150,
-    adminFee: 0.22,
-  },
-];
-
 /**
- * Simulates fetching consórcio plans from the Porto Seguro API.
- * In a real implementation, this function would use fetch() to make a network request
- * to the official Porto Seguro API endpoint, using the necessary authentication headers.
- * @returns A promise that resolves to an array of Porto Seguro consórcio plans.
+ * Simulates a more realistic API call where we query for available groups
+ * based on user's needs, instead of fetching a static list.
+ * @param category The asset category.
+ * @param targetValue The estimated asset value the user is looking for.
+ * @returns A promise that resolves to an array of matching Porto Seguro consórcio plans.
  */
-export const getPortoSeguroPlans = async (): Promise<ConsorcioPlan[]> => {
-  console.log(`Connecting to Porto Seguro API with token ${API_TOKEN.substring(0, 8)}...`);
-  // Simulate network delay to mimic a real API call
-  await new Promise(resolve => setTimeout(resolve, 350));
-  console.log('Successfully fetched plans from Porto Seguro.');
-  return mockPortoSeguroPlans;
+export const getAvailableGroups = async (
+  category: 'Automóvel' | 'Imóvel' | 'Serviços',
+  targetValue: number
+): Promise<ConsorcioPlan[]> => {
+  console.log(`Porto Seguro API: Searching for groups in '${category}' near ${targetValue}...`);
+
+  // Base templates for generating plans dynamically
+  const planTemplates = {
+    Automóvel: [
+      { baseValue: 80000, term: 80, fee: 0.18, nameTemplate: 'Auto Essencial' },
+      { baseValue: 150000, term: 72, fee: 0.17, nameTemplate: 'Auto Premium' },
+      { baseValue: 200000, term: 60, fee: 0.16, nameTemplate: 'SUV Confort' },
+      { baseValue: 50000, term: 80, fee: 0.19, nameTemplate: 'Auto Entrada' },
+    ],
+    Imóvel: [
+      { baseValue: 300000, term: 200, fee: 0.20, nameTemplate: 'Meu Apê' },
+      { baseValue: 700000, term: 180, fee: 0.19, nameTemplate: 'Casa dos Sonhos' },
+      { baseValue: 1200000, term: 200, fee: 0.18, nameTemplate: 'Investidor Imobiliário' },
+      { baseValue: 250000, term: 210, fee: 0.21, nameTemplate: 'Imóvel Compacto' },
+    ],
+    Serviços: [
+      { baseValue: 25000, term: 36, fee: 0.25, nameTemplate: 'Viagem Inesquecível' },
+      { baseValue: 50000, term: 48, fee: 0.22, nameTemplate: 'Reforma e Construção' },
+      { baseValue: 35000, term: 40, fee: 0.23, nameTemplate: 'Estética e Saúde' },
+    ],
+  };
+
+  const relevantTemplates = planTemplates[category];
+
+  // Generate more options (up to 6) to allow AI to filter better for the 3 slots
+  const generatedGroups: ConsorcioPlan[] = relevantTemplates
+    .map(template => {
+      // Create variations around the target value
+      const valueMultiplier = targetValue > 0 ? targetValue / template.baseValue : 1;
+      const assetValue = Math.round((template.baseValue * (0.8 + Math.random() * 0.4 * valueMultiplier)) / 5000) * 5000;
+
+      if (assetValue <= 0) return null;
+
+      // Ensure the generated value is within a reasonable range of the target
+      if (Math.abs(assetValue - targetValue) > targetValue * 0.85 && relevantTemplates.length > 1) {
+        return null;
+      }
+      
+      const totalCost = assetValue * (1 + template.fee);
+      const monthlyInstallment = Math.round(totalCost / template.term);
+      
+      return {
+        provider: 'Porto Seguro',
+        planName: `${template.nameTemplate} ${Math.round(assetValue / 1000)}k`,
+        category,
+        assetValue,
+        termInMonths: template.term,
+        monthlyInstallment,
+        adminFee: template.fee,
+      };
+    })
+    .filter((plan): plan is ConsorcioPlan => plan !== null)
+    .sort((a, b) => Math.abs(a.assetValue - targetValue) - Math.abs(b.assetValue - targetValue))
+    .slice(0, 5); // Return up to 5 best matches
+
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 650));
+  
+  console.log(`Porto Seguro API: Found ${generatedGroups.length} matching groups.`);
+  return generatedGroups;
 };
+
 
 /**
  * Simulates submitting a consórcio application directly to Porto Seguro's system.
@@ -132,6 +89,7 @@ export const getPortoSeguroPlans = async (): Promise<ConsorcioPlan[]> => {
  * @param plan The specific plan the user is contracting.
  * @returns A promise that resolves to a mock submission response.
  */
+// FIX: The UserProfile type was not imported, causing a build error.
 export const submitConsorcioApplication = async (userProfile: UserProfile, plan: ConsorcioPlan): Promise<{ success: boolean; proposalId: string }> => {
   console.log(`Submitting application to Porto Seguro for ${userProfile.contact?.name}...`);
   console.log('Plan:', plan.planName);

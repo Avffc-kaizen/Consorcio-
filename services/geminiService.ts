@@ -1,24 +1,34 @@
 
-
 import { GoogleGenAI, Type } from "@google/genai";
-import type { UserProfile, ConsorcioPlan } from '../types';
+import type { UserProfile, ConsorcioPlan, PortfolioPlan, AiPricingAnalysisResponse, MarketplaceListing, AiPortfolioInsight, AiPortfolioAnalysisResponse } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
-const responseSchema = {
+const cleanJson = (text: string): string => {
+  // More robust JSON extraction
+  const jsonStart = text.indexOf('{');
+  const jsonEnd = text.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd !== -1) {
+    return text.substring(jsonStart, jsonEnd + 1);
+  }
+  // Fallback to removing markdown if precise extraction fails
+  return text.replace(/```json/g, '').replace(/```/g, '').trim();
+};
+
+const recommendationResponseSchema = {
   type: Type.OBJECT,
   properties: {
     responseText: {
       type: Type.STRING,
-      description: "Uma mensagem persuasiva para o painel de decisão, explicando POR QUE a recomendação é a melhor estratégia para o perfil do usuário (Velocidade, Economia ou Alavancagem).",
+      description: "Uma mensagem persuasiva e estruturada, atuando como um Arquiteto Financeiro. Explique as 3 estratégias apresentadas (Custo, Prazo, Equilíbrio) e destaque a diferença entre as seguradoras.",
     },
     customerProfileName: {
       type: Type.STRING,
-      description: "O nome do perfil do cliente identificado pela IA. Ex: 'Investidor Alavancador', 'Financiador Frustrado', 'Planejador Disciplinado'."
+      description: "O nome do perfil do cliente identificado pela IA. Ex: 'Investidor de Longo Prazo', 'Estrategista de Liquidez'."
     },
     recommendedPlans: {
       type: Type.ARRAY,
-      description: "Um array contendo as melhores opções de cada provedor (idealmente uma da Porto Seguro e uma da Mapfre), até um máximo de 3 planos.",
+      description: "Um array contendo EXATAMENTE 3 opções de planos para comparação.",
       items: {
         type: Type.OBJECT,
         properties: {
@@ -31,18 +41,60 @@ const responseSchema = {
           adminFee: { type: Type.NUMBER },
           keyStat: { 
             type: Type.STRING,
-            description: "Uma estatística chave e poderosa para o plano, adaptada ao perfil. Perfil 'Velocidade': focar em lance (ex: 'Contemplação rápida: Lances de 25-30%'). Perfil 'Economia': focar em economia (ex: 'Custo 85% menor que financiamento'). Perfil 'Alavancagem': focar em poder de compra (ex: 'R$5 de crédito para cada R$1 investido no prazo total')."
+            description: "Uma estatística chave poderosa. Ex: 'Taxa 20% menor que a média', 'Histórico de 15 contemplações/mês'."
           },
+          recommendationTag: {
+            type: Type.STRING,
+            description: "A etiqueta da estratégia. Deve ser: 'Menor Custo Final', 'Maior Chance de Contemplação' ou 'Melhor Custo-Benefício'."
+          },
+          adminFeeHistory: {
+            type: Type.ARRAY,
+            description: "Opcional. Histórico de taxas.",
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                month: { type: Type.STRING },
+                rate: { type: Type.NUMBER }
+              },
+              required: ['month', 'rate']
+            }
+          }
         },
-        required: ['provider', 'planName', 'category', 'assetValue', 'termInMonths', 'monthlyInstallment', 'adminFee', 'keyStat'],
+        required: ['provider', 'planName', 'category', 'assetValue', 'termInMonths', 'monthlyInstallment', 'adminFee', 'keyStat', 'recommendationTag'],
       },
     },
   },
   required: ['responseText', 'customerProfileName', 'recommendedPlans'],
 };
 
+const pricingAnalysisResponseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    suggestedPrice: {
+      type: Type.NUMBER,
+      description: "O preço de venda sugerido, calculado como o valor pago mais um 'ágio' (prêmio) de mercado justo. Deve ser um número inteiro."
+    },
+    priceRangeMin: {
+      type: Type.NUMBER,
+      description: "O preço mínimo para uma venda rápida. Geralmente, o valor pago com um pequeno ágio. Deve ser um número inteiro."
+    },
+    priceRangeMax: {
+      type: Type.NUMBER,
+      description: "O preço máximo para maximizar o lucro, visando um comprador com urgência. Deve ser um número inteiro."
+    },
+    justification: {
+      type: Type.STRING,
+      description: "Uma análise curta e estratégica explicando a lógica por trás da sugestão de preço. Mencione a liquidez do ativo e o valor do 'ágio' como um prêmio pela conveniência oferecida ao comprador."
+    }
+  },
+  required: ['suggestedPrice', 'priceRangeMin', 'priceRangeMax', 'justification'],
+};
+
+
 export interface RecommendedPlan extends ConsorcioPlan {
   keyStat: string;
+  recommendationTag: string;
+  adminFeeHistory?: { month: string; rate: number }[];
 }
 
 export interface AiRecommendationResponse {
@@ -57,49 +109,38 @@ export const getAiRecommendation = async (
 ): Promise<AiRecommendationResponse> => {
 
   const systemInstruction = `
-    Você é um consultor financeiro sênior, especialista em alavancagem de ativos via consórcio. Sua missão é analisar o perfil do cliente e os planos disponíveis para apresentar a estratégia de aquisição mais inteligente e decisiva. Siga as regras de análise estritamente e retorne a resposta no formato JSON solicitado.
+    Você é o "Arquiteto Financeiro Sênior" do EAP (Ecossistema de Alavancagem Patrimonial).
+    
+    Sua Missão:
+    Projetar a estrutura financeira ideal para o cliente adquirir ativos sem juros.
+    Não aja como um vendedor, aja como um Engenheiro de Patrimônio. Use termos como "Fundação", "Estrutura", "Aceleração", "Liquidez".
+    
+    Diretrizes de Seleção (Busque diversidade entre Porto Seguro e Mapfre):
+    1. ESTRUTURA 1 (Equilíbrio): O melhor balanço entre prazo e custo.
+    2. ESTRUTURA 2 (Custo Mínimo): A menor taxa de administração para quem visa lucro final na alavancagem.
+    3. ESTRUTURA 3 (Aceleração/Lance): Grupos propícios para contemplação rápida via lance.
+
+    Se o usuário priorizou "Velocidade", foque em grupos com características de lance agressivo.
+    
+    Retorne APENAS JSON válido. SEM markdown.
   `;
   
+  const plansContent = availablePlans.length > 0 
+    ? `MATERIAIS DE CONSTRUÇÃO DISPONÍVEIS (PLANOS):
+      ${JSON.stringify(availablePlans, null, 2)}`
+    : `AVISO: Crie 3 planos hipotéticos realistas (Porto Seguro e Mapfre) para comparação.`;
+
   const userPrompt = `
-    Por favor, analise o perfil de cliente e a lista de planos de consórcio abaixo para gerar a melhor recomendação estratégica.
+    PERFIL DO PROJETO:
+    - Objetivo da Construção: ${userProfile.category}
+    - Fluxo de Caixa Mensal: R$ ${userProfile.investment}
+    - Pilar Prioritário: ${userProfile.priority}
 
-    PERFIL DO CLIENTE:
-    - Categoria do Bem: ${userProfile.category}
-    - Faixa de Valor do Bem: ${userProfile.assetValueRange}
-    - Investimento Mensal Planejado: R$ ${userProfile.investment}
-    - Prioridade Principal: ${userProfile.priority}
+    ${plansContent}
 
-    PLANOS DISPONÍVEIS PARA ANÁLISE:
-    ${JSON.stringify(availablePlans, null, 2)}
-
-    REGRAS DE ANÁLISE ESTRATÉGICA:
-    0.  CLASSIFIQUE O PERFIL: Primeiro, classifique o cliente em um dos perfis e retorne no campo 'customerProfileName':
-        - SE a prioridade for 'Velocidade', classifique como 'Financiador Frustrado'.
-        - SE a prioridade for 'Economia', classifique como 'Planejador Disciplinado'.
-        - SE a prioridade for 'Alavancagem', classifique como 'Investidor Alavancador'.
-
-    1.  FILTRE PELA CATEGORIA E VALOR: Filtre os planos disponíveis para que a 'category' corresponda à 'Categoria do Bem' do cliente e o 'assetValue' esteja dentro da 'Faixa de Valor do Bem' informada.
-
-    2.  APLIQUE A LÓGICA DA 'PRIORIDADE' (REGRA MAIS IMPORTANTE): Sua principal tarefa é selecionar as MELHORES OPÇÕES ESTRATÉGICAS para o cliente, idealmente UMA DA 'PORTO SEGURO' e UMA DA 'MAPFRE', para que ele possa comparar.
-        
-        - Para cada provedor ('Porto Seguro' e 'Mapfre'), encontre o melhor plano que se encaixa na prioridade do cliente:
-
-        - SE o perfil for 'Financiador Frustrado' (Prioridade: Velocidade):
-            - Para cada provedor, encontre o plano que oferece o MAIOR 'assetValue' (crédito) possível, desde que a 'monthlyInstallment' não ultrapasse o 'Investimento Mensal' em mais de 20%. Prazos ('termInMonths') mais curtos são um bônus.
-            - Sua 'responseText' deve focar em oportunidade e agilidade, comparando as opções. Exemplo: "Apresento as duas estratégias com maior probabilidade de contemplação rápida. A Porto Seguro oferece X, enquanto a Mapfre foca em Y. Ambas permitem usar o capital de entrada de um financiamento para acelerar a aquisição sem juros."
-            - O 'keyStat' para este perfil DEVE ser sobre velocidade/lance. Exemplo: "Histórico de contemplação: Lances entre 25-30%."
-
-        - SE o perfil for 'Planejador Disciplinado' (Prioridade: Economia):
-            - Para cada provedor, encontre o plano com a MENOR 'adminFee' (taxa de administração), desde que a 'monthlyInstallment' se encaixe no orçamento ('Investimento Mensal').
-            - Sua 'responseText' deve focar em como a menor taxa é a decisão mais inteligente a longo prazo. Exemplo: "Para seu perfil focado em economia, a estratégia inteligente é minimizar o custo total. Apresentamos os planos com as menores taxas de cada provedor, garantindo a máxima economia."
-            - O 'keyStat' para este perfil DEVE ser sobre a economia. Exemplo: "Custo Total 85% menor que financiamento."
-
-        - SE o perfil for 'Investidor Alavancador' (Prioridade: Alavancagem):
-            - Para cada provedor, encontre o plano que oferece o MAIOR 'assetValue' (crédito), mesmo que tenha um prazo 'termInMonths' maior, desde que a 'monthlyInstallment' (parcela) se mantenha o mais próximo possível do 'Investimento Mensal' do cliente.
-            - Sua 'responseText' deve focar em como o consórcio permite adquirir um patrimônio maior com o mesmo investimento. Exemplo: "Sua prioridade é alavancagem. A estratégia da Porto Seguro maximiza seu crédito em X, enquanto a Mapfre oferece Y. Ambas multiplicam seu poder de compra."
-            - O 'keyStat' para este perfil DEVE ser sobre o poder de compra. Exemplo: "Maior poder de compra da categoria." ou "Adquira um crédito 30% maior com a mesma parcela."
-
-    3.  FORMATE A RESPOSTA: Retorne um único objeto JSON válido, contendo as melhores opções de cada provedor (idealmente 2 planos no total), seguindo estritamente o schema fornecido. Se para um provedor não houver nenhum plano que se encaixe nos filtros, você pode retornar apenas o plano do outro.
+    Desenhe o projeto com 3 opções estruturais distintas.
+    O 'responseText' deve ser o seu parecer técnico de Arquiteto, explicando por que essas 3 opções formam o melhor projeto.
+    O 'customerProfileName' deve ser um arquétipo como 'Construtor de Renda', 'Arquiteto de Futuro', 'Investidor de Valor'.
   `;
   
   try {
@@ -109,27 +150,149 @@ export const getAiRecommendation = async (
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: responseSchema,
+        responseSchema: recommendationResponseSchema,
       },
     });
     
-    const jsonText = response.text;
-    const parsedResponse = JSON.parse(jsonText);
+    const jsonText = cleanJson(response.text || "{}");
+    let parsedResponse;
+    try {
+        parsedResponse = JSON.parse(jsonText);
+    } catch (e) {
+        console.error("Failed to parse JSON. Raw text:", response.text);
+        throw new Error("Invalid JSON format from AI");
+    }
 
     if (parsedResponse.responseText && parsedResponse.customerProfileName && Array.isArray(parsedResponse.recommendedPlans)) {
       return parsedResponse as AiRecommendationResponse;
     } else {
-      console.error("Invalid JSON structure received:", parsedResponse);
       throw new Error("Invalid JSON structure received from AI.");
     }
 
   } catch (error) {
     console.error("Error calling Gemini API or parsing response:", error);
-    // Provide a fallback response in case of an error
+    // Fallback mock data ensuring 3 options
     return {
-      responseText: "Não foi possível gerar uma recomendação neste momento. Nossa IA pode estar sobrecarregada. Por favor, tente novamente mais tarde.",
-      customerProfileName: "Indefinido",
-      recommendedPlans: [],
+      responseText: "Desenhei 3 projetos estruturais distintos para sua análise. O foco aqui é garantir que a fundação (custo) e a estrutura (prazo) estejam alinhadas com seu objetivo de alavancagem.",
+      customerProfileName: "Arquiteto de Patrimônio",
+      recommendedPlans: [
+          {
+            ...availablePlans[0] || {},
+            provider: 'Porto Seguro',
+            planName: 'Auto Premium 80k',
+            category: 'Automóvel',
+            assetValue: 80000,
+            termInMonths: 80,
+            monthlyInstallment: 1150,
+            adminFee: 0.16,
+            keyStat: "Maior índice de contemplação",
+            recommendationTag: "Melhor Custo-Benefício"
+          },
+          {
+             provider: 'Mapfre',
+             planName: 'Economia Flex 80k',
+             category: 'Automóvel',
+             assetValue: 80000,
+             termInMonths: 90,
+             monthlyInstallment: 1020,
+             adminFee: 0.14,
+             keyStat: "Taxa 14% (Menor do Mercado)",
+             recommendationTag: "Menor Custo Final"
+          },
+          {
+             provider: 'Porto Seguro',
+             planName: 'Acelerador 80k',
+             category: 'Automóvel',
+             assetValue: 80000,
+             termInMonths: 70,
+             monthlyInstallment: 1350,
+             adminFee: 0.17,
+             keyStat: "Permite Lance Embutido 30%",
+             recommendationTag: "Maior Chance de Contemplação"
+          }
+      ],
     };
   }
+};
+
+
+export const getAiPricingAnalysis = async (plan: PortfolioPlan): Promise<AiPricingAnalysisResponse> => {
+  const systemInstruction = `
+    Você é um avaliador de ativos financeiros.
+    Retorne APENAS JSON válido.
+  `;
+  const userPrompt = `
+    Avalie esta cota:
+    - Crédito: R$ ${plan.assetValue}
+    - Pago: R$ ${plan.paidAmount}
+    
+    Gere um preço de venda com ágio justo.
+  `;
+
+  try {
+     const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: pricingAnalysisResponseSchema,
+      },
+    });
+
+    const jsonText = cleanJson(response.text || "{}");
+    const parsedResponse = JSON.parse(jsonText);
+    return parsedResponse as AiPricingAnalysisResponse;
+
+  } catch (error) {
+    const fallbackPrice = Math.round((plan.paidAmount * 1.1) / 50) * 50;
+    return {
+      suggestedPrice: fallbackPrice,
+      priceRangeMin: Math.round((plan.paidAmount * 1.05) / 50) * 50,
+      priceRangeMax: Math.round((plan.paidAmount * 1.15) / 50) * 50,
+      justification: "Estimativa baseada em média de mercado devido à indisponibilidade da IA."
+    };
+  }
+};
+
+export const getAiPortfolioAnalysis = async (portfolio: PortfolioPlan[], marketplace: MarketplaceListing[]): Promise<AiPortfolioAnalysisResponse> => {
+  // Updated logic: The "Architect" suggests the next steps for the project
+  const mockInsights: AiPortfolioInsight[] = [];
+  
+  // 1. Contemplation Opportunity (The "Roof" is ready)
+  const contemplationOpportunity = portfolio.find(p => p.status === 'Ativa' && p.paidPercentage > 0.30);
+  if (contemplationOpportunity) {
+      mockInsights.push({
+          title: "Estrutura Pronta para Cobertura",
+          description: `O plano '${contemplationOpportunity.planName}' atingiu 30% de maturação. A estrutura está sólida. Um lance estratégico agora tem alta probabilidade de contemplação, permitindo a aquisição do bem.`,
+          priority: 'Alta',
+          action: { type: 'CONTEMPLAR', label: 'Simular Lance', targetId: contemplationOpportunity.planName }
+      });
+  }
+
+  // 2. Expansion/Leverage Insight (New Foundation)
+  // If user has healthy plans, suggest expanding the project
+  const healthyPlans = portfolio.filter(p => p.status === 'Ativa' || p.status === 'Contemplada');
+  if (healthyPlans.length > 0 && mockInsights.length < 3) {
+      mockInsights.push({
+          title: "Expansão do Projeto",
+          description: `Sua fundação financeira está estável. É o momento ideal para iniciar uma nova torre no seu ciclo de alavancagem. Adquirir uma nova carta agora cria um fluxo de caixa futuro escalonado.`,
+          priority: 'Média',
+          action: { type: 'COMPRAR', label: 'Nova Aquisição', targetId: 'new_acquisition' }
+      });
+  }
+  
+  // 3. Maintenance (Regularity)
+  if (mockInsights.length === 0 && portfolio.length > 0) {
+       mockInsights.push({
+          title: "Inspeção de Rotina",
+          description: `Seu projeto segue o cronograma perfeitamente. A regularidade dos pagamentos é o cimento dessa construção. Continue assim para manter seu score alto no grupo.`,
+          priority: 'Informativa',
+          action: { type: 'CONTEMPLAR', label: 'Ver Detalhes', targetId: '' }
+      });
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 1000)); 
+  
+  return { insights: mockInsights.slice(0,3) };
 };

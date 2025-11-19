@@ -1,128 +1,70 @@
+
 import type { ConsorcioPlan } from '../types';
 
-const mockMapfrePlans: ConsorcioPlan[] = [
-    // Automóveis
-     {
-      provider: 'Mapfre',
-      planName: 'Meu Primeiro Carro',
-      category: 'Automóvel',
-      assetValue: 45000,
-      termInMonths: 84,
-      monthlyInstallment: 590,
-      adminFee: 0.155,
-    },
-     {
-      provider: 'Mapfre',
-      planName: 'Plano Econômico Flex',
-      category: 'Automóvel',
-      assetValue: 65000,
-      termInMonths: 80,
-      monthlyInstallment: 890,
-      adminFee: 0.14,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Seu Carro Novo',
-      category: 'Automóvel',
-      assetValue: 95000,
-      termInMonths: 75,
-      monthlyInstallment: 1350,
-      adminFee: 0.165,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'SUV Família',
-      category: 'Automóvel',
-      assetValue: 115000,
-      termInMonths: 72,
-      monthlyInstallment: 1700,
-      adminFee: 0.16,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Sedan Executivo',
-      category: 'Automóvel',
-      assetValue: 140000,
-      termInMonths: 70,
-      monthlyInstallment: 2150,
-      adminFee: 0.155,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Mapfre Utilitários',
-      category: 'Automóvel',
-      assetValue: 180000,
-      termInMonths: 60,
-      monthlyInstallment: 3150,
-      adminFee: 0.15,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Elétrico do Futuro',
-      category: 'Automóvel',
-      assetValue: 250000,
-      termInMonths: 72,
-      monthlyInstallment: 3700,
-      adminFee: 0.16,
-    },
-    // Imóveis
-    {
-      provider: 'Mapfre',
-      planName: 'Terreno para Construir',
-      category: 'Imóvel',
-      assetValue: 200000,
-      termInMonths: 180,
-      monthlyInstallment: 1200,
-      adminFee: 0.20,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Lar Doce Lar',
-      category: 'Imóvel',
-      assetValue: 450000,
-      termInMonths: 200,
-      monthlyInstallment: 2400,
-      adminFee: 0.185,
-    },
-    {
-      provider: 'Mapfre',
-      planName: 'Imóvel Comercial',
-      category: 'Imóvel',
-      assetValue: 900000,
-      termInMonths: 150,
-      monthlyInstallment: 6300,
-      adminFee: 0.175,
-    },
-    // Serviços
-    {
-        provider: 'Mapfre',
-        planName: 'Cirurgia Plástica',
-        category: 'Serviços',
-        assetValue: 30000,
-        termInMonths: 36,
-        monthlyInstallment: 900,
-        adminFee: 0.23,
-    },
-    {
-        provider: 'Mapfre',
-        planName: 'Educação Garantida',
-        category: 'Serviços',
-        assetValue: 40000,
-        termInMonths: 40,
-        monthlyInstallment: 1050,
-        adminFee: 0.21,
-    },
-];
-
 /**
- * Simulates fetching consórcio plans from the Mapfre API.
- * In a real implementation, this would involve connecting to Mapfre's partner portal or dedicated B2B service.
+ * Simulates fetching consórcio plans from the Mapfre API based on user criteria.
+ * @param category The asset category.
+ * @param targetValue The estimated asset value the user is looking for.
  * @returns A promise that resolves to an array of Mapfre consórcio plans.
  */
-export const getMapfrePlans = async (): Promise<ConsorcioPlan[]> => {
-  console.log('Connecting to Mapfre API...');
+export const getAvailableGroups = async (
+  category: 'Automóvel' | 'Imóvel' | 'Serviços',
+  targetValue: number
+): Promise<ConsorcioPlan[]> => {
+  console.log(`Mapfre API: Searching for groups in '${category}' near ${targetValue}...`);
+
+  // Base templates for generating plans dynamically
+  const planTemplates = {
+    Automóvel: [
+        { baseValue: 65000, term: 80, fee: 0.14, nameTemplate: 'Plano Econômico Flex' },
+        { baseValue: 95000, term: 75, fee: 0.165, nameTemplate: 'Seu Carro Novo' },
+        { baseValue: 140000, term: 70, fee: 0.155, nameTemplate: 'Sedan Executivo' },
+        { baseValue: 45000, term: 80, fee: 0.15, nameTemplate: 'Primeiro Carro' },
+    ],
+    Imóvel: [
+        { baseValue: 200000, term: 180, fee: 0.20, nameTemplate: 'Terreno para Construir' },
+        { baseValue: 450000, term: 200, fee: 0.185, nameTemplate: 'Lar Doce Lar' },
+        { baseValue: 300000, term: 190, fee: 0.19, nameTemplate: 'Investimento Garantido' },
+    ],
+    Serviços: [
+        { baseValue: 30000, term: 36, fee: 0.23, nameTemplate: 'Cirurgia Plástica' },
+        { baseValue: 40000, term: 40, fee: 0.21, nameTemplate: 'Educação Garantida' },
+    ],
+  };
+
+  const relevantTemplates = planTemplates[category];
+
+  const generatedGroups: ConsorcioPlan[] = relevantTemplates
+    .map(template => {
+      const valueMultiplier = targetValue > 0 ? targetValue / template.baseValue : 1;
+      const assetValue = Math.round((template.baseValue * (0.85 + Math.random() * 0.3 * valueMultiplier)) / 5000) * 5000;
+      
+      if (assetValue <= 0) return null;
+
+      if (Math.abs(assetValue - targetValue) > targetValue * 0.9 && relevantTemplates.length > 1) {
+        return null;
+      }
+      
+      const totalCost = assetValue * (1 + template.fee);
+      const monthlyInstallment = Math.round(totalCost / template.term);
+      
+      return {
+        provider: 'Mapfre',
+        planName: `${template.nameTemplate} ${Math.round(assetValue / 1000)}k`,
+        category,
+        assetValue,
+        termInMonths: template.term,
+        monthlyInstallment,
+        adminFee: template.fee,
+      };
+    })
+    .filter((plan): plan is ConsorcioPlan => plan !== null)
+    .sort((a, b) => Math.abs(a.assetValue - targetValue) - Math.abs(b.assetValue - targetValue))
+    .slice(0, 4); // Return up to 4 best matches from Mapfre
+
   // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 450));
-  console.log('Successfully fetched plans from Mapfre.');
-  return mockMapfrePlans;
+  await new Promise(resolve => setTimeout(resolve, 750));
+  
+  console.log(`Mapfre API: Found ${generatedGroups.length} matching groups.`);
+  return generatedGroups;
 };
