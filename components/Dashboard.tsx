@@ -1,9 +1,11 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, Suspense } from 'react';
 import type { UserProfile, PortfolioPlan, AiPortfolioInsight } from '../types';
-import { DashboardPlanCard } from './DashboardPlanCard';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { AiInsightEngine } from './AiInsightEngine';
+
+// Lazy Load Components
+const DashboardPlanCard = React.lazy(() => import('./DashboardPlanCard'));
+const WealthProjectionChart = React.lazy(() => import('./WealthProjectionChart'));
 
 interface DashboardProps {
   userProfile: UserProfile;
@@ -61,95 +63,24 @@ const KeyMetrics: React.FC<{ portfolio: PortfolioPlan[] }> = ({ portfolio }) => 
     );
 };
 
-const WealthProjectionChart: React.FC<{ portfolio: PortfolioPlan[] }> = ({ portfolio }) => {
-    const projectionData = useMemo(() => {
-        if (portfolio.length === 0) return [];
-        
-        const data = [];
-        const projectionYears = 10;
+const ChartSkeleton = () => (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-sm mb-10 h-[300px] animate-pulse">
+        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+        <div className="h-48 bg-gray-100 dark:bg-gray-700/50 rounded mt-8"></div>
+    </div>
+);
 
-        for (let year = 0; year <= projectionYears; year++) {
-            let totalInvested = 0;
-            let totalAssets = 0;
-            let totalDebt = 0;
+const CardSkeleton = () => (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm h-40 animate-pulse p-5">
+         <div className="flex justify-between">
+             <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+             <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+         </div>
+         <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mt-4"></div>
+    </div>
+);
 
-            portfolio.forEach(plan => {
-                const totalCost = plan.assetValue * (1 + plan.adminFee);
-                const annualPayment = plan.monthlyInstallment * 12;
-                
-                let futurePaidAmount = plan.paidAmount + (annualPayment * year);
-                if (futurePaidAmount > totalCost) {
-                    futurePaidAmount = totalCost;
-                }
-
-                totalInvested += futurePaidAmount;
-                // Simple appreciation model (e.g., 5% per year for real estate/assets)
-                totalAssets += plan.assetValue * Math.pow(1.05, year);
-                
-                const remainingDebt = Math.max(0, totalCost - futurePaidAmount);
-                totalDebt += remainingDebt;
-            });
-
-            data.push({
-                name: year === 0 ? 'Hoje' : `${year}a`,
-                'Capital Investido': Math.round(totalInvested),
-                'Patrimônio Projetado': Math.round(totalAssets - totalDebt),
-            });
-        }
-        return data;
-    }, [portfolio]);
-
-    return (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 md:p-6 rounded-2xl shadow-sm mb-10">
-            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-2">
-                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Curva de Alavancagem</h3>
-                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Projeção de crescimento patrimonial vs. custo.</p>
-                 </div>
-            </div>
-            <div style={{ width: '100%', height: 250 }}>
-                 <ResponsiveContainer>
-                    <LineChart data={projectionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(128, 128, 128, 0.1)" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 10 }} axisLine={false} tickLine={false} dy={10} interval={1} />
-                        <YAxis 
-                            tickFormatter={(value) => `R$${value / 1000}k`} 
-                            tick={{ fill: '#9CA3AF', fontSize: 10 }} 
-                            axisLine={false} 
-                            tickLine={false} 
-                        />
-                        <Tooltip 
-                           formatter={(value: number) => formatCurrency(value)}
-                           contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.95)', border: 'none', borderRadius: '8px', color: '#f3f4f6', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontSize: '12px' }}
-                           itemStyle={{ paddingBottom: '2px' }}
-                        />
-                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-                        <Line 
-                            type="monotone" 
-                            dataKey="Capital Investido" 
-                            stroke="#9CA3AF" 
-                            strokeWidth={2} 
-                            dot={false}
-                            name="Investido"
-                            strokeDasharray="5 5"
-                        />
-                        <Line 
-                            type="monotone" 
-                            dataKey="Patrimônio Projetado" 
-                            stroke="#06b6d4" 
-                            strokeWidth={3} 
-                            dot={{ r: 0 }} 
-                            activeDot={{ r: 6 }}
-                            name="Patrimônio"
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-    );
-};
-
-export const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, onStartNewAnalysis, onUpdatePlan }) => {
+const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, onStartNewAnalysis, onUpdatePlan }) => {
   const [insights, setInsights] = useState<AiPortfolioInsight[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('Todos');
@@ -217,7 +148,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, on
         {portfolio.length > 0 ? (
           <>
             <KeyMetrics portfolio={portfolio} />
-            <WealthProjectionChart portfolio={portfolio} />
+            <Suspense fallback={<ChartSkeleton />}>
+                <WealthProjectionChart portfolio={portfolio} />
+            </Suspense>
             
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
@@ -253,7 +186,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, on
                                 <option value="Todos">Todas Categorias</option>
                                 <option value="Automóvel">Automóvel</option>
                                 <option value="Imóvel">Imóvel</option>
-                                <option value="Serviços">Serviços</option>
+                                <option value="Pesados">Pesados</option>
                             </select>
                             
                             <select
@@ -276,13 +209,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, on
                         filteredPortfolio.map((plan, index) => {
                             const planInsight = insights.find(insight => insight.action.targetId === plan.planName);
                             return (
-                                <DashboardPlanCard 
-                                    key={index} 
-                                    plan={plan} 
-                                    onListPlan={() => {}} 
-                                    aiInsight={planInsight} 
-                                    onUpdatePlan={onUpdatePlan} 
-                                />
+                                <Suspense key={index} fallback={<CardSkeleton />}>
+                                    <DashboardPlanCard 
+                                        plan={plan} 
+                                        onListPlan={() => {}} 
+                                        aiInsight={planInsight} 
+                                        onUpdatePlan={onUpdatePlan} 
+                                    />
+                                </Suspense>
                             );
                         })
                     ) : (
@@ -340,3 +274,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, portfolio, on
     </div>
   );
 };
+
+export default Dashboard;

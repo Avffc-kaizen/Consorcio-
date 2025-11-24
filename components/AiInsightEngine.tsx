@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import type { PortfolioPlan, MarketplaceListing, AiPortfolioInsight } from '../types';
 import { getAiPortfolioAnalysis } from '../services/geminiService';
@@ -13,6 +14,8 @@ export const AiInsightEngine: React.FC<AiInsightEngineProps> = ({ portfolio, mar
     useEffect(() => {
         const generateInsights = async () => {
             if (portfolio.length > 0) {
+                // Delay slightly to let UI render first
+                await new Promise(r => setTimeout(r, 1000));
                 const result = await getAiPortfolioAnalysis(portfolio, marketplaceListings);
                 onInsightsGenerated(result.insights);
             } else {
@@ -22,7 +25,7 @@ export const AiInsightEngine: React.FC<AiInsightEngineProps> = ({ portfolio, mar
 
         generateInsights();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [portfolio, marketplaceListings]); // Rerun if portfolio changes
+    }, [portfolio.length]); // Only rerun if number of plans change to avoid loops
 
     return null; // This is a headless component
 };

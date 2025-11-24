@@ -1,15 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consórcio Inteligente AI</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Planejador Inteligente de Consórcio</title>
+    <meta name="title" content="Planejador Inteligente de Consórcio">
+    <meta name="description" content="A forma mais inteligente de comprar seu carro ou imóvel. Sem juros abusivos, com parcelas que cabem no bolso.">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://consorcio.consegseguro.com/">
+    <meta property="og:title" content="Planejador Inteligente de Consórcio">
+    <meta property="og:description" content="A forma mais inteligente de comprar seu carro ou imóvel. Sem juros abusivos, com parcelas que cabem no bolso.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=1200&h=630&auto=format&fit=crop">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://consorcio.consegseguro.com/">
+    <meta property="twitter:title" content="Planejador Inteligente de Consórcio">
+    <meta property="twitter:description" content="A forma mais inteligente de comprar seu carro ou imóvel. Sem juros abusivos, com parcelas que cabem no bolso.">
+    <meta property="twitter:image" content="https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=1200&h=630&auto=format&fit=crop">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Inter', sans-serif;
+      }
+      /* Custom scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 20px;
       }
     </style>
   <script type="importmap">
@@ -26,8 +56,25 @@
   }
 }
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '4784202835002921');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=4784202835002921&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 </head>
-  <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <body class="bg-slate-50 dark:bg-gray-900 text-slate-900 dark:text-gray-100 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

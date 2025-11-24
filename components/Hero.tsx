@@ -1,116 +1,176 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface HeroProps {
   onStart: () => void;
 }
 
 const FeatureCard: React.FC<{ title: string; description: string; icon: React.ReactNode }> = ({ title, description, icon }) => (
-  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg p-6 rounded-2xl border border-white/20 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group w-full">
-    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform duration-300">
+  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 group w-full">
+    <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center mb-5 group-hover:bg-blue-950 group-hover:text-amber-400 transition-colors duration-300">
       {icon}
     </div>
-    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{title}</h3>
-    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
+    <h3 className="text-lg font-bold text-slate-900 mb-3">{title}</h3>
+    <p className="text-sm text-slate-700 leading-relaxed font-medium">{description}</p>
   </div>
 );
 
 const StatItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="text-center px-4 md:px-6 py-2 border-r last:border-r-0 border-gray-200 dark:border-gray-700">
-        <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</p>
+    <div className="text-center px-4 md:px-6 py-2 border-r last:border-r-0 border-slate-200">
+        <p className="text-xl md:text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+        <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-widest font-bold mt-1">{label}</p>
     </div>
 );
 
 export const Hero: React.FC<HeroProps> = ({ onStart }) => {
-  return (
-    <div className="relative w-full overflow-hidden">
-       {/* Background Elements */}
-       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] md:w-[1000px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-       <div className="absolute bottom-0 right-0 w-[400px] md:w-[800px] h-[600px] bg-blue-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+  const [copied, setCopied] = useState(false);
 
-      <div className="container mx-auto px-4 pt-12 md:pt-24 pb-16 flex flex-col items-center min-h-[calc(100vh-80px)] justify-center">
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Planejador Inteligente de Consórcio',
+      text: 'Encontrei essa ferramenta incrível para planejar a compra de bens sem juros. Simule seu plano aqui:',
+      url: window.location.href,
+    };
+
+    // 1. Tentar Compartilhamento Nativo (Mobile/Apps)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        try {
+            await navigator.share(shareData);
+            return; // Sucesso! Encerra a função.
+        } catch (err: any) {
+            // Se o erro for 'AbortError', o usuário cancelou o modal intencionalmente.
+            // Não devemos copiar para o clipboard nesse caso.
+            if (err.name === 'AbortError') {
+                return;
+            }
+            console.debug('Compartilhamento nativo falhou, tentando fallback...', err);
+        }
+    }
+
+    // 2. Fallback: Área de Transferência (Desktop)
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Falha ao copiar link', err);
+    }
+  };
+
+  return (
+    <div className="relative w-full overflow-hidden bg-slate-50">
+       {/* Background Elements - Clean & Light */}
+       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-blue-100/50 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+       
+      <div className="container mx-auto px-4 pt-16 md:pt-28 pb-20 flex flex-col items-center min-h-[calc(100vh-80px)] justify-center relative">
         
-        <div className="text-center max-w-5xl mx-auto mb-12 md:mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 px-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 border border-cyan-200 dark:border-cyan-700/30 backdrop-blur-sm text-xs font-bold text-cyan-700 dark:text-cyan-300 mb-8 shadow-sm hover:shadow-md transition-shadow cursor-default">
-            <span className="relative flex h-2 w-2">
+        <div className="text-center max-w-5xl mx-auto mb-16 md:mb-24 animate-in fade-in slide-in-from-bottom-4 duration-700 px-2">
+          
+          {/* Badge - Friendly & Clear */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 mb-8 cursor-default">
+            <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
             </span>
-            IA Arquiteto Financeiro
+            ECONOMIA INTELIGENTE
           </div>
           
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white leading-[1.1] mb-6 md:mb-8 tracking-tight">
-            Construa patrimônio com a <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600">inteligência dos grandes.</span>
+          {/* Title - Simple & Direct */}
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-slate-900 leading-[1.05] mb-8 tracking-tight">
+            Chega de pagar<br className="hidden md:block" /> 
+            <span className="relative whitespace-nowrap ml-2 md:ml-4">
+                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-800 via-blue-900 to-slate-900">
+                    juros ao banco.
+                </span>
+                <span className="absolute inset-x-0 bottom-3 h-3 bg-amber-300/50 -z-10 transform -skew-x-6 rounded-sm"></span>
+            </span>
           </h1>
           
-          <p className="text-base md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-10 md:mb-12 leading-relaxed font-medium">
-            A plataforma que projeta seu ciclo de alavancagem. Sua IA arquiteta a compra de ativos sem juros para multiplicar seu capital.
+          {/* Subtitle - Explanatory */}
+          <p className="text-lg md:text-2xl text-slate-700 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+            Ajudamos você a planejar a compra do seu carro, casa ou caminhão pelo <strong className="text-slate-900 font-bold">preço justo</strong>. Sem entrada abusiva, sem surpresas.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto px-4">
+          {/* CTA Buttons - Clear Action */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto px-4">
             <button
               onClick={onStart}
-              className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-xl shadow-cyan-600/30 hover:shadow-cyan-500/40 hover:-translate-y-1 overflow-hidden active:scale-95"
+              className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-blue-950 hover:bg-blue-900 text-white font-bold py-4 px-12 rounded-xl text-lg transition-all duration-300 shadow-xl shadow-slate-900/10 hover:shadow-slate-900/20 hover:-translate-y-1 overflow-hidden active:scale-95"
             >
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-              INICIAR PROJETO
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+              SIMULAR MEU PLANO
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-transform group-hover:translate-x-1 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
             
             <button 
-                onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })}
-                className="w-full sm:w-auto text-gray-600 dark:text-gray-400 font-semibold hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors py-4 px-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={handleShare}
+                className="w-full sm:w-auto text-slate-700 font-bold hover:text-slate-900 transition-all duration-300 py-4 px-8 rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-white flex items-center justify-center gap-2 group active:scale-95 bg-white/80"
             >
-                Como funciona?
+                {copied ? (
+                    <>
+                        <span className="text-green-700">Link Copiado</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-700" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    </>
+                ) : (
+                    <>
+                        Compartilhar
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400 group-hover:text-blue-700 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                    </>
+                )}
             </button>
           </div>
 
-           <div className="mt-12 pt-8 border-t border-gray-200/50 dark:border-gray-700/50 flex flex-wrap justify-center gap-6 sm:gap-12 opacity-80">
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-500">
-                     <span className="font-bold text-gray-500 dark:text-gray-500 text-xs md:text-sm flex items-center gap-1">
-                        <svg className="w-5 h-5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-2.29-6.417-5.382-7.433z"/></svg>
-                        Segurança Bancária
+           <div className="mt-14 pt-10 border-t border-slate-200 flex flex-wrap justify-center gap-8 sm:gap-16 opacity-90">
+                <div className="flex items-center gap-2.5 group cursor-default">
+                     <div className="p-2 bg-blue-50 rounded-lg text-blue-800">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-2.29-6.417-5.382-7.433z"/></svg>
+                     </div>
+                     <span className="font-bold text-slate-700 text-sm md:text-base">
+                        Segurança Total
                      </span>
                 </div>
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-500">
-                     <span className="font-bold text-gray-500 dark:text-gray-500 text-xs md:text-sm flex items-center gap-1">
-                        <svg className="w-5 h-5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-                        Análise IA Imparcial
+                <div className="flex items-center gap-2.5 group cursor-default">
+                     <div className="p-2 bg-green-50 rounded-lg text-green-700">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                     </div>
+                     <span className="font-bold text-slate-700 text-sm md:text-base">
+                        Matemática a seu favor
                      </span>
                 </div>
            </div>
         </div>
 
+        {/* Features Grid - Simplified Text */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150 px-4">
           <FeatureCard 
-            title="Arquiteto de Lances" 
-            description="Nossa IA projeta o lance matematicamente perfeito, analisando o histórico de milhares de grupos para garantir a contemplação mais rápida."
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M17.636 17.636l-.707-.707M12 21v-1M4.364 17.636l.707-.707M3 12h1M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+            title="Lances Inteligentes" 
+            description="Nossa tecnologia analisa milhares de grupos para encontrar onde você tem mais chance de ser contemplado rápido, pagando menos."
+            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
           />
           <FeatureCard 
-            title="Ciclo de Alavancagem" 
-            description="Um sistema perpétuo. Utilize o crédito contemplado para adquirir ativos que geram renda, pagando a própria parcela e expandindo seu império."
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
+            title="Poder de Compra" 
+            description="Com a carta de crédito na mão, você compra seu bem à vista, negociando descontos incríveis na hora de fechar negócio."
+            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
           <FeatureCard 
-            title="Orquestração Digital" 
-            description="Zero burocracia. Gerenciamos toda a documentação e aprovação junto às seguradoras através de nossa integração direta."
-            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+            title="Tudo Digital" 
+            description="Esqueça a papelada. Cuidamos de toda a burocracia para você, da escolha do plano até a liberação do dinheiro."
+            icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
         </div>
         
-        <div className="mt-16 md:mt-20 w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 animate-in fade-in duration-1000 delay-300 mx-4">
+        {/* Stats Bar */}
+        <div className="mt-20 w-full max-w-4xl bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 animate-in fade-in duration-1000 delay-300 mx-4">
             <div className="flex flex-col gap-2 text-center md:text-left">
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Junte-se a 12.000+ construtores de riqueza</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Volume transacionado na plataforma ultrapassa R$ 45 Milhões.</p>
+                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Junte-se a 12.000+ <br/>brasileiros inteligentes</h3>
+                <p className="text-sm md:text-base text-slate-500 font-medium">Milhões economizados em juros bancários.</p>
             </div>
-            <div className="flex gap-4 md:gap-8">
-                <StatItem label="Cotas Ativas" value="3.4k" />
-                <StatItem label="Contemplações" value="850+" />
+            <div className="flex gap-6 md:gap-12">
+                <StatItem label="Planos Ativos" value="3.4k" />
+                <StatItem label="Sonhos Realizados" value="850+" />
                 <StatItem label="Economia Média" value="42%" />
             </div>
         </div>

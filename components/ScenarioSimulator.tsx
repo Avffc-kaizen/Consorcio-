@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 interface ScenarioSimulatorProps {
-  initialCategory: 'Automóvel' | 'Imóvel' | 'Serviços';
+  initialCategory: 'Automóvel' | 'Imóvel' | 'Pesados';
   initialValue: number;
   initialInstallment: number;
 }
@@ -18,6 +18,7 @@ export const ScenarioSimulator: React.FC<ScenarioSimulatorProps> = ({ initialCat
     switch (initialCategory) {
       case 'Imóvel': return { minVal: 100000, maxVal: 2000000, minInst: 500, maxInst: 10000, avgFee: 0.19 };
       case 'Automóvel': return { minVal: 30000, maxVal: 300000, minInst: 300, maxInst: 5000, avgFee: 0.16 };
+      case 'Pesados': return { minVal: 100000, maxVal: 5000000, minInst: 2000, maxInst: 50000, avgFee: 0.14 };
       default: return { minVal: 10000, maxVal: 100000, minInst: 150, maxInst: 2000, avgFee: 0.22 };
     }
   }, [initialCategory]);

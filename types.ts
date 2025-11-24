@@ -1,6 +1,5 @@
 
-
-export type DiagnosticStep = 'category' | 'investment' | 'priority' | 'contact' | 'done';
+export type DiagnosticStep = 'category' | 'income_check' | 'fgts_check' | 'planning_horizon' | 'objective' | 'bid_analysis' | 'persona_type' | 'target_asset' | 'priority' | 'lead_capture' | 'processing' | 'simulation_presentation' | 'done';
 
 export interface Message {
   id: string;
@@ -11,9 +10,16 @@ export interface Message {
 }
 
 export interface UserProfile {
-  category?: 'Automóvel' | 'Imóvel' | 'Serviços';
-  investment?: number;
-  priority?: 'Velocidade' | 'Economia' | 'Alavancagem';
+  category?: 'Automóvel' | 'Imóvel' | 'Pesados';
+  monthlyIncome?: number; // Nova métrica estratégica
+  planningHorizon?: 'imediato' | 'curto_prazo' | 'medio_prazo' | 'longo_prazo'; // Urgência
+  fgtsBalance?: number;
+  personaType?: 'PF' | 'PJ';
+  targetAssetValue?: number; 
+  investment?: number; 
+  objective?: 'imediato' | 'investimento' | 'frota';
+  bidCapacity?: 'sem_lance' | 'baixo' | 'medio' | 'alto'; 
+  priority?: 'Velocidade' | 'Planejamento' | 'Economia' | 'Alavancagem';
   contact?: {
     name: string;
     email: string;
@@ -22,15 +28,28 @@ export interface UserProfile {
   };
 }
 
+export interface GroupStatistics {
+    averageBid: number; // Média histórica em %
+    lastBid: number;    // Último corte em %
+    maxBid: number;     // Teto histórico
+    contemplationsPerMonth: number; // Média de contemplados
+    assembliesHeld: number; // Idade do grupo em meses
+    fundHealth: 'Crítico' | 'Estável' | 'Alta Liquidez'; // Saúde do caixa
+    bidTrend: 'Alta' | 'Estável' | 'Queda'; // Tendência dos lances
+}
+
 export interface ConsorcioPlan {
-  // FIX: Added 'Mapfre' to the provider type to support multiple providers.
-  provider: 'Porto Seguro' | 'Mapfre';
+  provider: 'Porto Seguro' | 'Mapfre' | 'Bancorbrás';
   planName: string;
-  category: 'Automóvel' | 'Imóvel' | 'Serviços';
+  category: 'Automóvel' | 'Imóvel' | 'Pesados';
   assetValue: number;
   termInMonths: number;
   monthlyInstallment: number;
   adminFee: number; // as a percentage, e.g., 0.15 for 15%
+  recommendationTag?: string;
+  keyStat?: string;
+  features?: string[]; 
+  stats?: GroupStatistics; // Dados de Inteligência de Mercado
 }
 
 export type PortfolioPlanStatus = 'Ativa' | 'Contemplada' | 'Quitada' | 'À Venda' | 'Em Análise (Anuência)';
@@ -104,4 +123,18 @@ export interface AiPortfolioInsight {
 
 export interface AiPortfolioAnalysisResponse {
     insights: AiPortfolioInsight[];
+}
+
+export interface EtlLog {
+    id: string;
+    timestamp: string;
+    level: 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR';
+    message: string;
+    source?: 'Drive' | 'Parser' | 'Database' | 'Market Intelligence';
+}
+
+export interface EtlPipelineStatus {
+    isRunning: boolean;
+    lastRun: string | null;
+    totalIngested: number;
 }

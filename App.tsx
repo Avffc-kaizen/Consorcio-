@@ -1,14 +1,19 @@
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Routes, Route, useNavigate, Navigate, Link, NavLink } from 'react-router-dom';
-import { Hero } from './components/Hero';
-import { ChatInterface } from './components/ChatInterface';
-import { DecisionPanel } from './components/DecisionPanel';
-import { Dashboard } from './components/Dashboard';
-import { Login } from './components/Login';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { getAiRecommendation, RecommendedPlan } from './services/geminiService';
 import type { Message, ConsorcioPlan, UserProfile, DiagnosticStep, PortfolioPlan } from './types';
 import { findAvailablePlans } from './services/consorcioService';
+import { initMetaTracking } from './services/metaService';
+import { Navigation } from './components/Navigation';
+
+// Lazy Load Components for Performance Optimization
+const Hero = React.lazy(() => import('./components/Hero').then(module => ({ default: module.Hero })));
+const ChatInterface = React.lazy(() => import('./components/ChatInterface').then(module => ({ default: module.ChatInterface })));
+const DecisionPanel = React.lazy(() => import('./components/DecisionPanel').then(module => ({ default: module.DecisionPanel })));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Login = React.lazy(() => import('./components/Login').then(module => ({ default: module.Login })));
+const FloatingAssistant = React.lazy(() => import('./components/FloatingAssistant').then(module => ({ default: module.FloatingAssistant })));
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -26,8 +31,20 @@ const usePersistedState = <T,>(key: string, initialState: T): [T, React.Dispatch
   return [state, setState];
 };
 
+// Minimalist Loading Screen - Now in Navy/Gold
+const LoadingScreen = () => (
+  <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center bg-slate-50 animate-in fade-in duration-300">
+    <div className="relative w-16 h-16">
+       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-200 rounded-full"></div>
+       <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+    <p className="mt-4 text-sm font-bold text-slate-600 uppercase tracking-widest animate-pulse">Processando Estratégia...</p>
+  </div>
+);
+
 const App: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Persistent State - Data
   const [userPortfolio, setUserPortfolio] = usePersistedState<PortfolioPlan[]>('userPortfolio', []);
@@ -45,39 +62,34 @@ const App: React.FC = () => {
   // Ephemeral State (UI only)
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
-  });
+  // Forced Light Theme for "Trust" look & Init Meta Pixel
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
+    
+    // Initialize Meta Pixel/CAPI
+    initMetaTracking();
+  }, []);
 
+  // CONSULTANT PERSONA INITIALIZATION
   const initialChatMessage: Message = {
     id: '1',
     sender: 'ai',
-    text: 'Olá! Sou sua assistente de Aquisição Estratégica. Para começar, qual tipo de bem você planeja adquirir?',
+    text: 'Seja bem-vindo à Mesa de Estratégia.\n\nSou sua Inteligência Artificial dedicada a aquisições patrimoniais. Vou analisar o mercado para encontrar o cenário matemático perfeito para seu objetivo.\n\nPara iniciarmos a consultoria, qual ativo estratégico você deseja adquirir?',
     options: [
-      { text: 'Automóvel', payload: 'Automóvel' },
-      { text: 'Imóvel', payload: 'Imóvel' },
-      { text: 'Serviços', payload: 'Serviços' },
+      { text: '🏠 Imóvel (Investimento/Moradia)', payload: 'Imóvel' },
+      { text: '🚗 Automóvel (Premium/Popular)', payload: 'Automóvel' },
+      { text: '🚛 Pesados (Frota/Agro)', payload: 'Pesados' },
     ],
     step: 'category',
-  };
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(theme === 'dark' ? 'light' : 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'dark');
   };
 
   const startDiagnosis = () => {
     navigate('/chat');
     setMessages([initialChatMessage]);
     setDiagnosticStep('category');
-    setUserProfile(prev => ({ contact: prev.contact })); 
+    setUserProfile({}); // Reset profile
     setRecommendedPlans([]);
     setAiResponseText('');
     setCustomerProfileName('');
@@ -92,72 +104,11 @@ const App: React.FC = () => {
     setCustomerProfileName('');
     setFetchedPlans([]);
     setDiagnosticStep('category');
-    setUserProfile(prev => ({ contact: prev.contact })); 
+    setUserProfile({});
   };
 
   const handleLogin = () => {
       setIsAuthenticated(true);
-      // Mock data for demonstration if portfolio is empty
-      if (userPortfolio.length === 0) {
-           const today = new Date();
-           const mockPlans: PortfolioPlan[] = [
-             {
-                provider: 'Porto Seguro',
-                planName: 'Imóvel Premium 500k',
-                category: 'Imóvel',
-                assetValue: 500000,
-                termInMonths: 180,
-                monthlyInstallment: 3450.00,
-                adminFee: 0.18,
-                status: 'Ativa',
-                paidAmount: 3450 * 12,
-                paidPercentage: (3450 * 12) / (500000 * 1.18),
-                installmentsPaid: 12,
-                nextDueDate: new Date(today.getFullYear(), today.getMonth() + 1, 15).toLocaleDateString('pt-BR'),
-                paymentHistory: [],
-                bidHistory: [
-                    { date: '15/01/2024', amount: 85000, status: 'Recusado' },
-                    { date: '15/02/2024', amount: 92000, status: 'Recusado' },
-                    { date: '15/03/2024', amount: 105000, status: 'Pendente' }
-                ]
-             },
-             {
-                provider: 'Mapfre',
-                planName: 'Auto Executivo BMW',
-                category: 'Automóvel',
-                assetValue: 350000,
-                termInMonths: 80,
-                monthlyInstallment: 4800.00,
-                adminFee: 0.15,
-                status: 'Contemplada',
-                paidAmount: 4800 * 18,
-                paidPercentage: (4800 * 18) / (350000 * 1.15),
-                installmentsPaid: 18,
-                nextDueDate: new Date(today.getFullYear(), today.getMonth() + 1, 10).toLocaleDateString('pt-BR'),
-                paymentHistory: [],
-                bidHistory: [
-                    { date: '10/01/2024', amount: 120000, status: 'Aceito' }
-                ]
-             },
-             {
-                provider: 'Porto Seguro',
-                planName: 'Reforma & Design',
-                category: 'Serviços',
-                assetValue: 50000,
-                termInMonths: 48,
-                monthlyInstallment: 1250.00,
-                adminFee: 0.20,
-                status: 'Ativa',
-                paidAmount: 1250 * 4,
-                paidPercentage: (1250 * 4) / (50000 * 1.20),
-                installmentsPaid: 4,
-                nextDueDate: new Date(today.getFullYear(), today.getMonth() + 1, 20).toLocaleDateString('pt-BR'),
-                paymentHistory: [],
-                bidHistory: []
-             }
-           ];
-           setUserPortfolio(mockPlans);
-      }
       navigate('/dashboard');
   };
 
@@ -166,11 +117,43 @@ const App: React.FC = () => {
       navigate('/');
   };
 
-  // This is now just a reset, as the actual conversion happens via WhatsApp
-  const handleWhatsAppHandoff = () => {
-     // Optional: Clear session or just stay on decision page
-     // For now, we won't force a navigate, allowing them to browse more or close the tab.
-     console.log("User redirected to WhatsApp");
+  // Function triggered when user finalizes deal on DecisionPanel (clicks WhatsApp)
+  // We treat this as a "Conversion" and add the plan to their dashboard.
+  const handleWhatsAppHandoff = (plan: RecommendedPlan, contactInfo: { name: string; email: string; phone: string }) => {
+     
+     // 1. Update User Profile with captured Lead Data
+     const updatedProfile = {
+         ...userProfile,
+         contact: contactInfo
+     };
+     setUserProfile(updatedProfile);
+
+     // 2. Convert to PortfolioPlan with "In Analysis" status
+     const newAsset: PortfolioPlan = {
+         ...plan,
+         status: 'Em Análise (Anuência)',
+         paidAmount: 0,
+         paidPercentage: 0,
+         installmentsPaid: 0,
+         nextDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+         paymentHistory: [],
+         bidHistory: []
+     };
+     
+     // 3. Check if already exists to prevent duplicates
+     setUserPortfolio(prev => {
+        const exists = prev.some(p => p.planName === newAsset.planName && p.provider === newAsset.provider);
+        return exists ? prev : [newAsset, ...prev];
+     });
+     
+     // 4. Authenticate the lead (Account Creation Simulation)
+     setIsAuthenticated(true);
+     
+     // 5. Redirect to Dashboard to show the "acquired" asset
+     // Small delay to allow WhatsApp to open
+     setTimeout(() => {
+         navigate('/dashboard');
+     }, 1500);
   };
   
   const handleUpdatePlan = (updatedPlan: PortfolioPlan) => {
@@ -185,7 +168,8 @@ const App: React.FC = () => {
 
   const handleUserResponse = useCallback(async (response: { text?: string; payload?: any }) => {
     const userMessageText = response.text;
-    if (diagnosticStep !== 'contact' && userMessageText) {
+    // Always display user response unless it's empty
+    if (userMessageText) {
        const userMessage: Message = { id: Date.now().toString(), sender: 'user', text: userMessageText as string };
        addMessage(userMessage);
     }
@@ -195,218 +179,281 @@ const App: React.FC = () => {
     let nextStep: DiagnosticStep = diagnosticStep;
     let nextAiMessage: Message | null = null;
 
-    switch (diagnosticStep) {
-      case 'category':
-        updatedProfile.category = response.payload;
-        nextStep = 'investment';
-        nextAiMessage = {
-          id: (Date.now() + 1).toString(),
-          sender: 'ai',
-          text: `Ok, ${response.payload}. Para estruturarmos o plano, qual valor de parcela mensal ficaria confortável no seu fluxo de caixa?`,
-          step: 'investment',
-        };
-        break;
-      
-      case 'investment':
-        const investmentValue = parseFloat(response.text || '0');
-        if (isNaN(investmentValue) || investmentValue <= 0) {
-           addMessage({
-             id: (Date.now() + 1).toString(),
-             sender: 'ai',
-             text: 'Por favor, insira um valor numérico válido para o investimento mensal.',
-             step: 'investment'
-           });
-           setIsLoading(false);
-           return;
-        }
-        updatedProfile.investment = investmentValue;
-        
-        const loadingGroupsMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          sender: 'ai',
-          text: `Entendido. Com um aporte de ${formatCurrency(investmentValue)}, estou minerando as melhores opções na Porto Seguro e Mapfre...`,
-          step: 'investment',
-        };
-        addMessage(loadingGroupsMessage);
-
+    // Function to execute the final fetch logic (shared between paths)
+    const executeFinalAnalysis = async (profile: UserProfile) => {
         try {
-            const plans = await findAvailablePlans(updatedProfile.category!, investmentValue);
+            // Fetch Plans - Instant Recall
+            const plans = await findAvailablePlans(
+                profile.category!, 
+                profile.targetAssetValue!,
+                'PF'
+            );
             setFetchedPlans(plans);
 
-            // Optimized questions for clearer AI decision making
-            const priorityOptions = [
-                { text: 'Menor Custo Total (Taxa Mínima)', payload: 'Menor Custo Final' },
-                { text: 'Parcela Reduzida (Fluxo)', payload: 'Parcela Reduzida' },
-                { text: 'Contemplação Rápida (Lance)', payload: 'Velocidade' }
-            ];
-
             if (plans.length === 0) {
-              nextAiMessage = {
-                id: (Date.now() + 2).toString(),
-                sender: 'ai',
-                text: 'Não encontrei grupos exatos para esse valor, mas posso montar estratégias similares. O que é inegociável para você neste momento?',
-                options: priorityOptions,
-                step: 'priority',
-              };
+                nextAiMessage = {
+                    id: (Date.now() + 2).toString(),
+                    sender: 'ai',
+                    text: `O mercado está extremamente competitivo para o valor exato de ${formatCurrency(profile.targetAssetValue || 0)}. Vamos ajustar levemente o alvo para encontrar grupos com alta liquidez?`,
+                    step: 'target_asset'
+                };
+                setDiagnosticStep('target_asset');
             } else {
-               nextAiMessage = {
-                id: (Date.now() + 2).toString(),
-                sender: 'ai',
-                text: 'Localizei grupos com excelente potencial. Para refinar o comparativo entre Porto Seguro e Mapfre, qual é o fator decisivo para você?',
-                options: priorityOptions,
-                step: 'priority',
-              };
+                 // Generate AI Analysis
+                const result = await getAiRecommendation(profile, plans);
+                setRecommendedPlans(result.recommendedPlans);
+                setAiResponseText(result.responseText);
+                setCustomerProfileName(result.customerProfileName);
+                
+                setDiagnosticStep('done');
+                navigate('/decision');
             }
         } catch (error) {
-            console.error("Error finding available plans:", error);
+             console.error("Error:", error);
+             nextAiMessage = { id: (Date.now()).toString(), sender: 'ai', text: 'Detectei uma instabilidade na conexão com a base de dados. Vamos tentar novamente.', options: [{text: 'Reiniciar Análise', payload: 'restart'}], step: 'category' };
+             setDiagnosticStep('category');
+        }
+    };
+
+
+    try {
+      switch (diagnosticStep) {
+        case 'category':
+          updatedProfile.category = response.payload;
+          
+          // NEW STEP: Income Check for Budget Safety
+          nextStep = 'income_check';
+          nextAiMessage = {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: `Excelente. O setor de ${updatedProfile.category} apresenta ótimas oportunidades de alavancagem.\n\nPara eu calibrar a parcela ideal e garantir a aprovação do seu crédito, qual é sua renda mensal média hoje?`,
+                options: [], // Free input
+                step: 'income_check',
+          };
+          break;
+          
+        case 'income_check':
+            const income = parseFloat(response.text?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
+            if (isNaN(income) || income <= 0) {
+                addMessage({ id: Date.now().toString(), sender: 'ai', text: 'Por favor, digite apenas números para a renda (ex: 15.000).', step: 'income_check' });
+                setIsLoading(false);
+                return;
+            }
+            updatedProfile.monthlyIncome = income;
+            
+            nextStep = 'target_asset';
             nextAiMessage = {
-              id: (Date.now() + 2).toString(),
-              sender: 'ai',
-              text: 'Tive um problema ao consultar os sistemas dos parceiros. Vamos prosseguir com base no seu perfil. O que você prioriza?',
-              options: [ { text: 'Menor Custo', payload: 'Economia' }, { text: 'Velocidade', payload: 'Velocidade' } ],
-              step: 'priority',
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: `Renda registrada. Baseado no seu fluxo de caixa, vou filtrar grupos de alta performance.\n\nQual o valor de crédito (carta) que você busca para essa aquisição?`,
+                step: 'target_asset',
             };
-        }
-        nextStep = 'priority';
-        break;
+            break;
 
-      case 'priority':
-        updatedProfile.priority = response.payload;
-        nextStep = 'contact';
-        nextAiMessage = {
-          id: (Date.now() + 1).toString(),
-          sender: 'ai',
-          text: 'Perfeito. Já desenhei 3 cenários estratégicos para você comparar. Por favor, informe seus dados para liberar o acesso ao painel comparativo.',
-          step: 'contact',
-        };
-        break;
-      
-      case 'contact':
-        updatedProfile.contact = response.payload;
-        nextStep = 'done';
-        addMessage({ id: (Date.now() + 1).toString(), sender: 'ai', text: 'Gerando comparativo de seguradoras e estratégias de lance...' });
+        case 'target_asset': 
+             let assetValue = 0;
+             if (response.text) {
+                 const cleaned = response.text.replace(/[^\d,]/g, '').replace(',', '.');
+                 assetValue = parseFloat(cleaned);
+                 
+                 // Smart Heuristic
+                 if (!isNaN(assetValue) && assetValue > 0 && assetValue < 2000) {
+                     assetValue = assetValue * 1000;
+                 }
+             }
+             
+             if (isNaN(assetValue) || assetValue <= 0) {
+                addMessage({ id: Date.now().toString(), sender: 'ai', text: 'Por favor, informe o valor numérico (ex: 500.000).', step: 'target_asset' });
+                setIsLoading(false);
+                return;
+             }
+             updatedProfile.targetAssetValue = assetValue;
+             
+             // NEW STEP: Planning Horizon (Urgency)
+             nextStep = 'planning_horizon';
+             nextAiMessage = {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: `Crédito de ${formatCurrency(assetValue)} definido.\n\nEstrategicamente, qual é o seu horizonte de tempo ideal para ter esse bem em mãos?`,
+                options: [
+                    { text: '🚀 Imediato (Preciso de Estratégia de Lance)', payload: 'imediato' },
+                    { text: '📅 3 a 6 meses (Planejado)', payload: 'curto_prazo' },
+                    { text: '🛡️ Longo Prazo (Construção de Patrimônio)', payload: 'longo_prazo' }
+                ],
+                step: 'planning_horizon',
+             };
+             break;
 
-        try {
-          const result = await getAiRecommendation(updatedProfile, fetchedPlans);
-          setRecommendedPlans(result.recommendedPlans);
-          setAiResponseText(result.responseText);
-          setCustomerProfileName(result.customerProfileName);
-          navigate('/decision');
-        } catch (error) {
-           console.error('Error fetching AI recommendation:', error);
-           addMessage({ id: (Date.now() + 2).toString(), sender: 'ai', text: 'Desculpe, ocorreu um erro ao gerar seu plano. Por favor, tente novamente.' });
-        }
-        break;
+        case 'planning_horizon':
+            updatedProfile.planningHorizon = response.payload;
+            
+            // NEW STEP: Explicit FGTS Check for Real Estate
+            if (updatedProfile.category === 'Imóvel') {
+                nextStep = 'fgts_check';
+                nextAiMessage = {
+                    id: (Date.now() + 1).toString(),
+                    sender: 'ai',
+                    text: 'Possui saldo FGTS? Podemos utilizá-lo como "Moeda de Troca" para abater lances sem desembolsar dinheiro do caixa.',
+                    options: [
+                         { text: 'Não tenho / Não quero usar', payload: '0' },
+                         { text: 'Sim, tenho saldo', payload: 'manual' }
+                    ],
+                    step: 'fgts_check'
+                };
+            } else {
+                // Skip directly to Bid Analysis for Auto/Pesados
+                 nextStep = 'bid_analysis';
+                 nextAiMessage = {
+                    id: (Date.now() + 1).toString(),
+                    sender: 'ai',
+                    text: 'Para aumentarmos a probabilidade estatística de contemplação a curto prazo, você dispõe de algum recurso para oferta de lance?',
+                    options: [
+                        { text: 'Sim, tenho reserva (> 25%)', payload: 'alto' },
+                        { text: 'Recurso médio (10-25%)', payload: 'medio' },
+                        { text: 'Sem lance (Apenas Sorteio/Embutido)', payload: 'sem_lance' }
+                    ],
+                    step: 'bid_analysis',
+                };
+            }
+            break;
+            
+        case 'fgts_check':
+             if (response.payload === '0') {
+                 updatedProfile.fgtsBalance = 0;
+             } else if (response.text) {
+                 const fgts = parseFloat(response.text.replace(/[^\d,]/g, '').replace(',', '.') || '0');
+                 updatedProfile.fgtsBalance = fgts;
+             }
+             
+             nextStep = 'bid_analysis';
+             nextAiMessage = {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: 'Perfeito. Além do FGTS, existe disponibilidade de capital próprio para fortalecer a oferta de lance e antecipar a contemplação?',
+                options: [
+                    { text: 'Sim, tenho capital líquido', payload: 'alto' },
+                    { text: 'Apenas recurso moderado', payload: 'baixo' },
+                    { text: 'Somente o FGTS / Sorteio', payload: 'sem_lance' }
+                ],
+                step: 'bid_analysis',
+            };
+            break;
+
+        case 'bid_analysis':
+            updatedProfile.bidCapacity = response.payload;
+            
+            // CRITICAL CHANGE: LEAD CAPTURE IS NOW MANDATORY BEFORE PROCESSING
+            nextStep = 'lead_capture';
+            nextAiMessage = {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: 'Análise preliminar concluída. Identifiquei 3 cenários de alta viabilidade.\n\nPara gerar seu Dossiê Estratégico completo e liberar o contato direto do Consultor Sênior (WhatsApp), preciso apenas registrar a titularidade do estudo.',
+                options: [], 
+                step: 'lead_capture'
+            };
+            break;
+
+        case 'lead_capture':
+            // User submitted the LeadCaptureForm
+            if (response.payload) {
+                const contactData = response.payload;
+                updatedProfile.contact = {
+                    name: contactData.name,
+                    email: contactData.email,
+                    phone: contactData.phone
+                };
+                
+                // Now we proceed to processing
+                nextStep = 'processing';
+                nextAiMessage = {
+                    id: (Date.now() + 1).toString(),
+                    sender: 'ai',
+                    text: 'Cadastro validado. Cruzando dados com as administradoras Porto Seguro, Mapfre e Bancorbrás...',
+                    options: [], 
+                    step: 'processing'
+                };
+                
+                // Execute Analysis immediately after capture
+                await executeFinalAnalysis(updatedProfile);
+            } else {
+                 // Fallback if text was entered instead of form submission (shouldn't happen with UI)
+                 addMessage({ id: Date.now().toString(), sender: 'ai', text: 'Por favor, preencha o formulário acima para liberar o acesso.', step: 'lead_capture' });
+                 setIsLoading(false);
+                 return;
+            }
+            break;
+
+      }
+    } catch (e) {
+        console.error(e);
     }
     
     setUserProfile(updatedProfile);
     setDiagnosticStep(nextStep);
     if(nextAiMessage) {
       addMessage(nextAiMessage);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
     }
+    setIsLoading(false);
+
   }, [diagnosticStep, userProfile, navigate, fetchedPlans, setUserProfile, setFetchedPlans, setRecommendedPlans, setAiResponseText, setCustomerProfileName, setDiagnosticStep, setMessages]);
 
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm p-4 border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-10 transition-all duration-300">
-        <div className="container mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-cyan-600 dark:text-cyan-400 hover:opacity-80 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-2.29-6.417-5.382-7.433z" />
-            </svg>
-            <span className="hidden md:inline">Ecossistema de Alavancagem</span>
-            <span className="md:hidden">EAP</span>
-          </Link>
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-amber-200 selection:text-amber-900 overflow-x-hidden">
+      <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
 
-          <div className="flex items-center gap-4">
-              <nav>
-                  {isAuthenticated ? (
-                      <div className="flex items-center gap-4">
-                           <NavLink 
-                                to="/dashboard"
-                                className={({ isActive }) => 
-                                    `text-sm font-semibold transition-colors pb-1 ${
-                                        isActive 
-                                        ? 'text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-500' 
-                                        : 'text-gray-600 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400'
-                                    }`
-                                }
-                            >
-                                Meu Painel
-                            </NavLink>
-                            <button 
-                                onClick={handleLogout}
-                                className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
-                            >
-                                Sair
-                            </button>
-                      </div>
-                  ) : (
-                      <Link 
-                        to="/login"
-                        className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-                         Área do Cliente
-                      </Link>
-                  )}
-              </nav>
-              <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                {theme === 'light' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                )}
-              </button>
-            </div>
-        </div>
-      </header>
-
-      <main className="flex-grow pt-20">
-        <Routes>
-          <Route path="/" element={<Hero onStart={startDiagnosis} />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/chat" element={
-            <div className="container mx-auto px-4 py-8 flex justify-center h-[calc(100vh-80px)]">
-              <div className="w-full max-w-2xl h-full">
-                 <ChatInterface
-                  messages={messages}
-                  onUserResponse={handleUserResponse}
-                  isLoading={isLoading}
-                  diagnosticStep={diagnosticStep}
-                />
+      <main className="flex-grow pt-20 w-full max-w-full">
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            <Route path="/" element={<Hero onStart={startDiagnosis} />} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/chat" element={
+              <div className="container mx-auto px-4 py-8 flex justify-center h-[calc(100vh-80px)]">
+                <div className="w-full max-w-2xl h-full">
+                  <ChatInterface
+                    messages={messages}
+                    onUserResponse={handleUserResponse}
+                    isLoading={isLoading}
+                    diagnosticStep={diagnosticStep}
+                  />
+                </div>
               </div>
-            </div>
-          } />
-          <Route path="/decision" element={
-             <DecisionPanel 
-               userProfile={userProfile}
-               aiResponseText={aiResponseText}
-               recommendedPlans={recommendedPlans}
-               customerProfileName={customerProfileName}
-               onRestart={handleRestart}
-               onContractingSuccess={handleWhatsAppHandoff}
-             />
-          } />
-          <Route path="/dashboard" element={
-            isAuthenticated ? (
-                <Dashboard 
+            } />
+            <Route path="/decision" element={
+              <DecisionPanel 
                 userProfile={userProfile}
-                portfolio={userPortfolio}
-                onStartNewAnalysis={startDiagnosis}
-                onUpdatePlan={handleUpdatePlan}
-                />
-            ) : (
-                <Navigate to="/login" replace />
-            )
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+                aiResponseText={aiResponseText}
+                recommendedPlans={recommendedPlans}
+                customerProfileName={customerProfileName}
+                onRestart={handleRestart}
+                onContractingSuccess={handleWhatsAppHandoff}
+              />
+            } />
+            <Route path="/dashboard" element={
+              isAuthenticated ? (
+                  <Dashboard 
+                  userProfile={userProfile}
+                  portfolio={userPortfolio}
+                  onStartNewAnalysis={startDiagnosis}
+                  onUpdatePlan={handleUpdatePlan}
+                  />
+              ) : (
+                  <Navigate to="/login" replace />
+              )
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
+      
+      {/* Floating Assistant - Only on Blueprint (Decision) Page */}
+      <Suspense fallback={null}>
+        <FloatingAssistant 
+           isVisible={recommendedPlans.length > 0 && !isAuthenticated && location.pathname === '/decision'}
+           userProfile={userProfile}
+           bestPlan={recommendedPlans[0]}
+        />
+      </Suspense>
     </div>
   );
 };

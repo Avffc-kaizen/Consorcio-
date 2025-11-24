@@ -12,77 +12,104 @@ interface ChatInterfaceProps {
 const MessageBox: React.FC<{ message: Message }> = ({ message }) => {
     const isUser = message.sender === 'user';
     
-    // Minimalist avatars for cleaner look
     const AiAvatar = () => (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+        <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center flex-shrink-0 text-amber-400 shadow-sm border border-slate-800">
+             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
             </svg>
         </div>
     );
 
     return (
-        <div className={`flex gap-3 animate-in fade-in-50 slide-in-from-bottom-2 duration-300 ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+        <div className={`flex gap-4 animate-in fade-in-50 slide-in-from-bottom-2 duration-300 ${isUser ? 'justify-end' : 'justify-start'} mb-6`}>
             {!isUser && <AiAvatar />}
             <div
-                className={`max-w-[85%] px-5 py-3 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed ${
+                className={`max-w-[85%] px-6 py-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed border ${
                     isUser
-                        ? 'bg-cyan-600 text-white rounded-br-none'
-                        : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
+                        ? 'bg-slate-800 text-white rounded-br-none font-medium border-slate-800'
+                        : 'bg-white text-slate-700 rounded-tl-none border-slate-100'
                 }`}
             >
-                {message.text}
+                <div className="whitespace-pre-wrap">{message.text}</div>
             </div>
         </div>
     );
 };
 
-const ContactForm: React.FC<{ onUserResponse: (response: { payload: any }) => void, isLoading: boolean }> = ({ onUserResponse, isLoading }) => {
+// Internal Component for Lead Capture Form inside Chat
+const LeadCaptureForm = ({ onSubmit }: { onSubmit: (data: { name: string; email: string; phone?: string }) => void }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [referralSource, setReferralSource] = useState('');
-    const [agreed, setAgreed] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (name && email && phone && referralSource && agreed) {
-            onUserResponse({ payload: { name, email, phone, referralSource } });
+        if (name && email && phone) {
+            onSubmit({ name, email, phone });
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-4 w-full max-w-md mx-auto animate-in zoom-in-95 duration-300">
-             <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Dados do Arquiteto</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Para liberar o blueprint do seu projeto.</p>
-             </div>
-             
-             <div className="space-y-3">
-                <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome Completo" required className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
-                <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" required className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
-                <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp (DD) 99999-9999" required className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-cyan-500 outline-none" />
-                <select id="referral" value={referralSource} onChange={(e) => setReferralSource(e.target.value)} required className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none">
-                    <option value="" disabled>Como nos conheceu?</option>
-                    <option value="Google">Google / Pesquisa</option>
-                    <option value="Instagram">Instagram / Facebook</option>
-                    <option value="Linkedin">LinkedIn</option>
-                    <option value="Indication">Indicação</option>
-                </select>
-             </div>
+        <div className="w-full max-w-sm mx-auto bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-100 p-8 animate-in zoom-in-95 duration-500 my-6 relative overflow-hidden">
+            {/* Subtle Header Background */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-slate-800 to-slate-900"></div>
+            
+            <div className="text-center mb-8 relative z-10">
+                <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-900 border border-slate-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 className="text-xl font-bold tracking-tight text-slate-900">Dossiê Confidencial</h3>
+                <p className="text-xs text-slate-500 mt-2 font-medium">Protocolo de segurança para liberar a análise e o WhatsApp do Consultor Sênior.</p>
+            </div>
 
-             <div className="flex items-start space-x-3 pt-1">
-                <input type="checkbox" id="terms" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 h-5 w-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
-                <label htmlFor="terms" className="text-xs text-gray-500 dark:text-gray-400">Concordo em receber o projeto personalizado.</label>
-             </div>
-             
-             <button type="submit" disabled={isLoading || !agreed || !referralSource} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-2 text-sm uppercase tracking-wide">
-                {isLoading ? 'Gerando Projeto...' : 'Ver Meu Blueprint'}
-             </button>
-        </form>
+            <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+                <div className="group">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Nome do Investidor</label>
+                    <input 
+                        type="text" 
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
+                        placeholder="Seu nome completo"
+                        autoComplete="name"
+                    />
+                </div>
+                <div className="group">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">WhatsApp (Para Envio)</label>
+                    <input 
+                        type="tel" 
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
+                        placeholder="(DD) 99999-9999"
+                        autoComplete="tel"
+                    />
+                </div>
+                <div className="group">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">E-mail Profissional</label>
+                    <input 
+                        type="email" 
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
+                        placeholder="email@exemplo.com"
+                        autoComplete="email"
+                    />
+                </div>
+                <button 
+                    type="submit"
+                    className="w-full bg-slate-900 hover:bg-blue-950 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-slate-900/10 transition-all active:scale-95 flex items-center justify-center gap-2 mt-2 group"
+                >
+                    <span>Liberar Acesso VIP</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                </button>
+            </form>
+        </div>
     );
 };
-
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onUserResponse, isLoading, diagnosticStep }) => {
   const [inputText, setInputText] = useState('');
@@ -102,86 +129,97 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onUserRe
     }
   };
 
-  const quickReplies: Partial<Record<DiagnosticStep, { text: string; payload: any }[]>> = {
-    category: [
-      { text: '🚗 Automóvel', payload: 'Automóvel' },
-      { text: '🏠 Imóvel', payload: 'Imóvel' },
-      { text: '🎓 Serviços', payload: 'Serviços' },
-    ],
-    priority: [
-      { text: '⚡ Velocidade (Lance)', payload: 'Velocidade' },
-      { text: '💰 Menor Custo (Taxa)', payload: 'Economia' },
-      { text: '🏗️ Alavancagem', payload: 'Alavancagem' },
-    ],
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const messageOptions = (lastMessage?.sender === 'ai' && lastMessage.options) ? lastMessage.options : [];
+  
+  const currentReplies = messageOptions.length > 0 ? messageOptions : [];
+
+  const getPlaceholder = () => {
+      switch(diagnosticStep) {
+          case 'target_asset': return "Ex: 200.000 (Apenas números)";
+          default: return "Digite sua resposta...";
+      }
   };
 
-  const currentReplies = quickReplies[diagnosticStep] || [];
-
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[650px] bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-xl">
+    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[650px] bg-slate-50 rounded-3xl border border-slate-200 overflow-hidden shadow-2xl shadow-slate-200/40">
       
-      {/* Messages Area */}
-      <div className="flex-grow p-4 overflow-y-auto space-y-2 custom-scrollbar">
+      {/* Chat Header - Professional Navy */}
+      <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3">
+          <div className="relative">
+              <div className="w-2.5 h-2.5 bg-green-500 rounded-full absolute bottom-0 right-0 border-2 border-white"></div>
+               <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-amber-400 shadow-sm">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+               </div>
+          </div>
+          <div>
+              <p className="text-sm font-bold text-slate-900">Consultor Estratégico</p>
+              <p className="text-xs text-slate-500">Mesa de Operações</p>
+          </div>
+      </div>
+
+      <div className="flex-grow p-4 md:p-6 overflow-y-auto custom-scrollbar bg-slate-50">
         {messages.map((msg) => (
           <MessageBox key={msg.id} message={msg} />
         ))}
+        
+        {diagnosticStep === 'lead_capture' && !isLoading && (
+             <LeadCaptureForm onSubmit={(data) => onUserResponse({ text: 'Acesso Liberado. Gerando Dossiê...', payload: data })} />
+        )}
+
         {isLoading && (
             <div className="flex gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                <div className="bg-white dark:bg-gray-700 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1 items-center h-10">
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                 <div className="w-9 h-9 rounded-xl bg-slate-100 animate-pulse"></div>
+                <div className="bg-white px-5 py-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1.5 items-center h-12 border border-slate-100">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
                 </div>
             </div>
-        )}
-        {diagnosticStep === 'contact' && !isLoading && (
-             <ContactForm onUserResponse={onUserResponse} isLoading={isLoading} />
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="p-3 md:p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        {/* Quick Replies */}
-        {currentReplies.length > 0 && !isLoading && (
-          <div className="flex flex-wrap justify-center gap-2 mb-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
-            {currentReplies.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => !isLoading && onUserResponse({ text: option.text, payload: option.payload })}
-                className="bg-cyan-50 dark:bg-cyan-900/30 hover:bg-cyan-100 dark:hover:bg-cyan-800 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/50 font-semibold py-2.5 px-5 rounded-full text-sm transition-all transform hover:scale-105 shadow-sm"
-              >
-                {option.text}
-              </button>
-            ))}
-          </div>
-        )}
+      {diagnosticStep !== 'lead_capture' && diagnosticStep !== 'done' && (
+          <div className="p-4 bg-white border-t border-slate-100">
+            {currentReplies.length > 0 && !isLoading && (
+              <div className="flex flex-wrap justify-center gap-3 mb-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
+                {currentReplies.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => !isLoading && onUserResponse({ text: option.text, payload: option.payload })}
+                    className="bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-400 font-bold py-3 px-6 rounded-xl text-sm transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex-grow md:flex-grow-0 active:scale-95"
+                  >
+                    {option.text}
+                  </button>
+                ))}
+              </div>
+            )}
 
-        {/* Text Input (Only show if needed, e.g., for investment amount) */}
-        {diagnosticStep === 'investment' && (
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <input
-              type="number"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Valor Mensal (R$)"
-              className="flex-grow bg-gray-100 dark:bg-gray-700 border-0 rounded-full py-3 px-5 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-cyan-500 outline-none transition-shadow"
-              disabled={isLoading}
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !inputText.trim()}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-full p-3 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </form>
-        )}
-      </div>
+            {currentReplies.length === 0 && (
+              <form onSubmit={handleSubmit} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={getPlaceholder()}
+                  className="flex-grow bg-slate-50 border-transparent focus:bg-white focus:border-slate-300 rounded-xl py-3.5 px-5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all border"
+                  disabled={isLoading}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !inputText.trim()}
+                  className="bg-slate-900 hover:bg-blue-950 text-white rounded-xl p-3.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform rotate-90 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </form>
+            )}
+          </div>
+      )}
     </div>
   );
 };
