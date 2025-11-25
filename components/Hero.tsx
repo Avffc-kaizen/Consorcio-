@@ -64,7 +64,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
        
       <div className="container mx-auto px-4 pt-16 md:pt-28 pb-20 flex flex-col items-center min-h-[calc(100vh-80px)] justify-center relative">
         
-        <div className="text-center max-w-5xl mx-auto mb-16 md:mb-24 animate-in fade-in slide-in-from-bottom-4 duration-700 px-2">
+        <div className="text-center max-w-5xl mx-auto mb-16 md:mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 px-2">
           
           {/* Badge - Friendly & Clear */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-xs font-bold text-slate-600 mb-8 cursor-default">
@@ -141,6 +141,27 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
                      </span>
                 </div>
            </div>
+        </div>
+
+        {/* VSL Section */}
+        <div className="w-full max-w-4xl mx-auto mb-20 px-4 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
+            <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-slate-200 p-2 md:p-4 relative">
+                {/* Glow effect behind video */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-10 blur-2xl rounded-[3rem] -z-10"></div>
+                
+                <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-slate-900 shadow-inner">
+                     <iframe 
+                        className="absolute top-0 left-0 w-full h-full" 
+                        src="https://www.youtube.com/embed/j_DookQ_X6w?rel=0&modestbranding=1" 
+                        title="Estratégia de Alavancagem" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                    ></iframe>
+                </div>
+            </div>
+            <p className="text-center text-sm text-slate-500 font-bold mt-4 uppercase tracking-widest">
+                <span className="text-red-500">▶</span> Assista: Como multiplicar patrimônio sem juros
+            </p>
         </div>
 
         {/* Features Grid - Simplified Text */}

@@ -28,7 +28,7 @@ const StatusBadge: React.FC<{ status: PortfolioPlan['status'] }> = ({ status }) 
         'À Venda': { color: 'yellow', label: 'À Venda' },
         'Em Análise (Anuência)': { color: 'orange', label: 'Em Análise' },
     };
-    const config = statusConfig[status];
+    const config = statusConfig[status] || { color: 'blue', label: status };
     const colorClasses = {
         blue: 'bg-blue-100 text-blue-700 border-blue-200',
         green: 'bg-green-100 text-green-700 border-green-200',
@@ -38,7 +38,7 @@ const StatusBadge: React.FC<{ status: PortfolioPlan['status'] }> = ({ status }) 
     };
 
     return (
-        <div className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border ${colorClasses[config.color]}`}>
+        <div className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border ${colorClasses[config.color as keyof typeof colorClasses] || colorClasses.blue}`}>
             <span className={`h-2 w-2 rounded-full bg-current`}></span>
             <span className="text-xs font-bold uppercase tracking-wide">{config.label}</span>
         </div>

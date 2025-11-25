@@ -292,25 +292,6 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
                 {/* Consortium Process Timeline - Visual Roadmap */}
                 <ConsortiumProcessTimeline />
 
-                {/* Educational Video Section */}
-                <div className="mb-12 max-w-4xl mx-auto">
-                    <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-2 md:p-4">
-                        <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-slate-900">
-                             <iframe 
-                                className="absolute top-0 left-0 w-full h-full" 
-                                src="https://www.youtube.com/embed/dk3bxXshxF8?rel=0" 
-                                title="Entenda o Consórcio na Prática" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                allowFullScreen
-                            ></iframe>
-                        </div>
-                        <div className="text-center mt-5 mb-3">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entenda em 2 minutos</p>
-                            <h3 className="text-lg font-bold text-slate-900">Como funciona a Estratégia de Contemplação</h3>
-                        </div>
-                    </div>
-                </div>
-
                  {/* LISTA DE OPORTUNIDADES (Table Replacement) */}
                  {recommendedPlans.length > 0 && (
                     <Suspense fallback={<TableSkeleton />}>

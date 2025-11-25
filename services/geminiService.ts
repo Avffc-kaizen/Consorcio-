@@ -225,17 +225,29 @@ export const getAiPricingAnalysis = async (plan: PortfolioPlan): Promise<AiPrici
 
 export const getAiPortfolioAnalysis = async (portfolio: PortfolioPlan[], marketplace: MarketplaceListing[]): Promise<AiPortfolioAnalysisResponse> => {
   const systemInstruction = `
-    Você é um Gestor de Portfólio de Consórcios. Analise a carteira do cliente e sugira movimentos estratégicos (Vender, Contemplar, Comprar).
+    Você é um Gestor de Portfólio de Alta Performance (Asset Manager).
+    
+    MISSÃO: Analisar cada cota do portfólio e sugerir a MELHOR ação matemática:
+    
+    1. CONTEMPLAR: Se o plano está "Ativa", tem mais de 25% pago e histórico de lances mostra viabilidade. Sugira ofertar lance.
+    2. VENDER: Se o plano está "Contemplada" ou "Ativa" com alto ágio potencial. Sugira realizar lucro no Marketplace.
+    3. COMPRAR: Se o plano é recente (< 10% pago) e o grupo é saudável. Sugira manter o pagamento ou adquirir novas cotas para formar "Parede de Lances".
+    
+    REGRAS DE SAÍDA:
+    - 'targetId' deve ser EXATAMENTE o 'planName' do plano analisado.
+    - Seja direto e use dados (ex: "Com 30% pago, sua chance de contemplação é alta").
   `;
 
   const portfolioSummary = portfolio.map(p => ({
     planName: p.planName,
     status: p.status,
     paidPercentage: p.paidPercentage,
-    bidsMade: p.bidHistory.length
+    installmentsPaid: p.installmentsPaid,
+    bidHistoryLength: p.bidHistory.length,
+    lastBidStatus: p.bidHistory.length > 0 ? p.bidHistory[0].status : 'Nenhum'
   }));
 
-  const userPrompt = `Analise a carteira: ${JSON.stringify(portfolioSummary)}`;
+  const userPrompt = `Analise matematicamente este portfólio e gere insights acionáveis para CADA item: ${JSON.stringify(portfolioSummary)}`;
 
   try {
       const response = await ai.models.generateContent({
@@ -249,6 +261,7 @@ export const getAiPortfolioAnalysis = async (portfolio: PortfolioPlan[], marketp
       });
       return JSON.parse(cleanJson(response.text || "{}")) as AiPortfolioAnalysisResponse;
   } catch (error) {
+      console.error("Portfolio Analysis Error:", error);
       return { insights: [] };
   }
 };
