@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import type { PortfolioPlan } from '../types';
+import { EfficiencyRadarChart } from './EfficiencyRadarChart'; // Import Radar
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -79,19 +80,35 @@ export const PlanAnalysisModal: React.FC<PlanAnalysisModalProps> = ({ isOpen, on
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Análise Estratégica da Cota</h2>
                     <button onClick={onClose} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </header>
-                <main className="p-6 space-y-4">
+                <main className="p-6 space-y-6">
                     <div>
                         <p className="text-lg font-bold">{plan.planName}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Crédito de {formatCurrency(plan.assetValue)}</p>
                     </div>
-                    <ContemplationSimulator plan={plan} />
+
+                    {/* NEW DIMENSION: Radar Chart */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                             <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Radar de Eficiência</h4>
+                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                                 Análise multidimensional da qualidade do ativo. Quanto maior a área, melhor o plano.
+                             </p>
+                             <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-2 border border-gray-100 dark:border-gray-700">
+                                 <EfficiencyRadarChart plan={plan} />
+                             </div>
+                        </div>
+                        <div className="space-y-4">
+                            <ContemplationSimulator plan={plan} />
+                        </div>
+                    </div>
+
                 </main>
                 <footer className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex justify-end">
                     <button onClick={onClose} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-md transition-colors">

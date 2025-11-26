@@ -38,6 +38,18 @@ export const Navigation: React.FC<NavigationProps> = ({ isAuthenticated, onLogou
                             >
                                 Meu Portfólio
                             </NavLink>
+                            <NavLink 
+                                to="/admin"
+                                className={({ isActive }) => 
+                                    `text-sm font-bold transition-all duration-200 ${
+                                        isActive 
+                                        ? 'text-slate-900 border-b-2 border-slate-900 pb-0.5' 
+                                        : 'text-slate-500 hover:text-slate-800'
+                                    }`
+                                }
+                            >
+                                Admin
+                            </NavLink>
                             <div className="h-4 w-px bg-slate-200"></div>
                             <button 
                                 onClick={onLogout}
@@ -50,7 +62,7 @@ export const Navigation: React.FC<NavigationProps> = ({ isAuthenticated, onLogou
               </nav>
               
               {/* Mobile Menu Button (Simplified) */}
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center gap-4">
                   {isAuthenticated && (
                        <NavLink to="/dashboard" className="p-2 text-slate-900"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></NavLink>
                   )}

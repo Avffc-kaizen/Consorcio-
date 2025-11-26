@@ -1,9 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { runEtlPipeline, processUploadedFile } from '../services/consorcioService';
+import { runEtlPipeline, processUploadedFile, resetDatabase } from '../services/consorcioService';
 import type { EtlLog } from '../types';
 
-const EtlPipelineVisualizer = () => {
+export const DeveloperHub = () => {
     const [logs, setLogs] = useState<EtlLog[]>([]);
     const [isRunning, setIsRunning] = useState(false);
     const consoleRef = useRef<HTMLDivElement>(null);
@@ -26,6 +25,17 @@ const EtlPipelineVisualizer = () => {
         setIsRunning(false);
     };
 
+    const handleResetDatabase = () => {
+        resetDatabase();
+        setLogs(prev => [...prev, {
+            id: Date.now().toString(),
+            timestamp: new Date().toLocaleTimeString(),
+            level: 'WARN',
+            message: 'Database local (localStorage) foi limpa. Execute o Sync novamente para restaurar dados.',
+            source: 'Database'
+        }]);
+    };
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -35,7 +45,7 @@ const EtlPipelineVisualizer = () => {
             id: Date.now().toString(), 
             timestamp: new Date().toLocaleTimeString(), 
             level: 'INFO', 
-            message: 'Iniciando upload manual de dados...', 
+            message: `Iniciando ingestão de arquivo: ${file.name}`, 
             source: 'Drive' 
         }]);
 
@@ -68,9 +78,9 @@ const EtlPipelineVisualizer = () => {
                 <div>
                     <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
-                        Unified Data Pipeline (Real Data)
+                        Unified Data Pipeline (Python Integration)
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sincronização estrita: Pasta 11/2025 ou Upload Manual.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Importe o arquivo <code>consorcio_db.json</code> gerado pelo script Python.</p>
                 </div>
                 
                 <div className="flex gap-2">
@@ -81,21 +91,24 @@ const EtlPipelineVisualizer = () => {
                         accept=".json,.csv"
                         onChange={handleFileUpload}
                     />
+                    
+                    <button 
+                        onClick={handleResetDatabase}
+                        disabled={isRunning}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 px-4 rounded border border-red-200 transition-all flex items-center gap-2 text-sm"
+                        title="Limpar localStorage"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Reset DB
+                    </button>
+
                     <button 
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isRunning}
-                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded border border-gray-300 transition-all flex items-center gap-2 text-sm"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded shadow-lg transition-all flex items-center gap-2 text-sm"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        Upload Arquivo
-                    </button>
-                    
-                    <button 
-                        onClick={handleRunPipeline} 
-                        disabled={isRunning}
-                        className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                    >
-                        {isRunning ? 'Sincronizando...' : 'Sincronizar Drive'}
+                        Upload JSON / CSV
                     </button>
                 </div>
             </div>
@@ -105,25 +118,26 @@ const EtlPipelineVisualizer = () => {
                     <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
                         <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
-                            Target: MEU DRIVE &gt; 11/2025
+                            Fluxo de Integração
                         </h4>
-                        <div className="text-xs text-gray-500 mb-4">
-                            O sistema está configurado para rejeitar arquivos fora desta pasta para garantir integridade dos dados.
-                        </div>
                         
-                        <div className="space-y-2 text-xs font-mono">
-                            <div className="flex items-center gap-2 p-2 rounded bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900">
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                <span>BANCORBRAS_Nov25_Oficial.pdf</span>
+                        <div className="space-y-4 text-xs">
+                            <div className="flex items-start gap-2">
+                                <div className="min-w-[20px] h-5 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded-full text-[10px] font-bold">1</div>
+                                <p className="text-gray-600 dark:text-gray-400">Execute <code>analise_inteligente.py</code> localmente para processar PDFs/Excel.</p>
                             </div>
-                             <div className="flex items-center gap-2 p-2 rounded bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900">
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                <span>PORTO_SEGURO_11_25.pdf</span>
+                            <div className="flex items-start gap-2">
+                                <div className="min-w-[20px] h-5 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded-full text-[10px] font-bold">2</div>
+                                <p className="text-gray-600 dark:text-gray-400">Gere o arquivo <code>consorcio_db.json</code>.</p>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <div className="min-w-[20px] h-5 flex items-center justify-center bg-cyan-500 text-white rounded-full text-[10px] font-bold">3</div>
+                                <p className="text-gray-600 dark:text-gray-400">Faça o Upload aqui para atualizar o App Web.</p>
                             </div>
                         </div>
                         
                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded text-[10px] text-blue-700 dark:text-blue-300">
-                            <strong>Dados Reais:</strong> A ingestão utiliza tabelas oficiais com taxas de administração e prazos vigentes para Novembro de 2025.
+                            <strong>Schema Suportado:</strong> <code>{`{ id, type, company, group, credit, installment... }`}</code>
                         </div>
                     </div>
                 </div>
@@ -139,8 +153,9 @@ const EtlPipelineVisualizer = () => {
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-1 pr-2 custom-scrollbar" ref={consoleRef}>
                         {logs.length === 0 ? (
-                             <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50">
-                                <p>Aguardando conexão com Drive...</p>
+                             <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50 gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                                <p>Aguardando arquivo JSON/CSV...</p>
                              </div>
                         ) : (
                             logs.map((log) => (
@@ -157,16 +172,4 @@ const EtlPipelineVisualizer = () => {
             </div>
         </div>
     );
-};
-
-export const DeveloperHub = () => {
-  return (
-    <div className="space-y-6">
-       <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Painel de Integração (Real Data)</h1>
-            <p className="text-gray-500 dark:text-gray-400">Monitoramento da ingestão de tabelas oficiais e upload manual de arquivos.</p>
-       </div>
-       <EtlPipelineVisualizer />
-    </div>
-  );
 };

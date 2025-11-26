@@ -36,81 +36,6 @@ const MessageBox: React.FC<{ message: Message }> = ({ message }) => {
     );
 };
 
-// Internal Component for Lead Capture Form inside Chat
-const LeadCaptureForm = ({ onSubmit }: { onSubmit: (data: { name: string; email: string; phone?: string }) => void }) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (name && email && phone) {
-            onSubmit({ name, email, phone });
-        }
-    };
-
-    return (
-        <div className="w-full max-w-sm mx-auto bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-100 p-8 animate-in zoom-in-95 duration-500 my-6 relative overflow-hidden">
-            {/* Subtle Header Background */}
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-slate-800 to-slate-900"></div>
-            
-            <div className="text-center mb-8 relative z-10">
-                <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-900 border border-slate-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-slate-900">Dossiê Confidencial</h3>
-                <p className="text-xs text-slate-500 mt-2 font-medium">Protocolo de segurança para liberar a análise e o WhatsApp do Consultor Sênior.</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                <div className="group">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Nome do Investidor</label>
-                    <input 
-                        type="text" 
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
-                        placeholder="Seu nome completo"
-                        autoComplete="name"
-                    />
-                </div>
-                <div className="group">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">WhatsApp (Para Envio)</label>
-                    <input 
-                        type="tel" 
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
-                        placeholder="(DD) 99999-9999"
-                        autoComplete="tel"
-                    />
-                </div>
-                <div className="group">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">E-mail Profissional</label>
-                    <input 
-                        type="email" 
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all placeholder-slate-400 text-slate-900"
-                        placeholder="email@exemplo.com"
-                        autoComplete="email"
-                    />
-                </div>
-                <button 
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-blue-950 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-slate-900/10 transition-all active:scale-95 flex items-center justify-center gap-2 mt-2 group"
-                >
-                    <span>Liberar Acesso VIP</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:translate-x-1 transition-transform text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                </button>
-            </form>
-        </div>
-    );
-};
-
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onUserResponse, isLoading, diagnosticStep }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -163,9 +88,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onUserRe
           <MessageBox key={msg.id} message={msg} />
         ))}
         
-        {diagnosticStep === 'lead_capture' && !isLoading && (
-             <LeadCaptureForm onSubmit={(data) => onUserResponse({ text: 'Acesso Liberado. Gerando Dossiê...', payload: data })} />
-        )}
+        {/* Lead Capture Form removed as per request to make simulation free/direct */}
 
         {isLoading && (
             <div className="flex gap-3 mb-4">
@@ -180,7 +103,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onUserRe
         <div ref={messagesEndRef} />
       </div>
 
-      {diagnosticStep !== 'lead_capture' && diagnosticStep !== 'done' && (
+      {diagnosticStep !== 'done' && (
           <div className="p-4 bg-white border-t border-slate-100">
             {currentReplies.length > 0 && !isLoading && (
               <div className="flex flex-wrap justify-center gap-3 mb-4 animate-in slide-in-from-bottom-4 fade-in duration-500">

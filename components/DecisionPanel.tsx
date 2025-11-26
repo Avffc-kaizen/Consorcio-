@@ -5,6 +5,7 @@ import { RecommendedPlan } from '../services/geminiService';
 import { submitConsorcioApplication } from '../services/portoSeguroApi';
 import { trackMetaEvent } from '../services/metaService';
 import { ConsortiumProcessTimeline } from './ConsortiumProcessTimeline';
+import { SensitivityMatrix } from './SensitivityMatrix'; // Import Matrix
 
 // Lazy Load Components for Code Splitting & Performance
 const FinancialComparisonChart = React.lazy(() => import('./FinancialComparisonChart'));
@@ -75,6 +76,7 @@ const BRIEFING_STEP_DELAY = 800;
 export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiResponseText, recommendedPlans, customerProfileName, onRestart, onContractingSuccess }) => {
     const [bidAmount, setBidAmount] = useState<number | null>(null);
     const [useFgts, setUseFgts] = useState(false);
+    const [isShared, setIsShared] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     
     const fgtsBalance = userProfile.fgtsBalance || 0;
@@ -144,6 +146,29 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
         }
     };
 
+    const handleShare = async () => {
+        if (!top3Plans[0]) return;
+        const plan = top3Plans[0];
+        
+        const text = `*Estratégia de Aquisição - ${customerProfileName}*
+        
+🎯 *Objetivo:* ${userProfile.category}
+🏆 *Melhor Cenário:* ${plan.planName} (${plan.provider})
+💰 *Crédito:* ${formatCurrency(plan.assetValue)}
+📉 *Parcela:* ${formatCurrency(plan.monthlyInstallment)}
+📊 *Taxa Adm:* ${(plan.adminFee * 100).toFixed(2)}%
+
+Gerado pela IA de Inteligência de Mercado.`;
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setIsShared(true);
+            setTimeout(() => setIsShared(false), 2500);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     if (!isBriefingComplete) {
         return (
             <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center text-center h-[calc(100vh-120px)]">
@@ -168,14 +193,43 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
         <div className="container mx-auto px-4 py-8 animate-in fade-in duration-1000 pb-24">
             <div className="max-w-7xl mx-auto">
                 {/* Header Area */}
-                <div className="mb-10 text-center md:text-left max-w-4xl">
-                     <div className="inline-block px-3 py-1 bg-cyan-50 border border-cyan-100 rounded-full text-cyan-800 mb-3">
-                        <span className="text-xs font-bold uppercase tracking-widest">Blueprint Estratégico: {customerProfileName || 'Investidor'}</span>
+                <div className="mb-10 text-center md:text-left">
+                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                         <div className="max-w-4xl">
+                             <div className="inline-block px-3 py-1 bg-cyan-50 border border-cyan-100 rounded-full text-cyan-800 mb-3">
+                                <span className="text-xs font-bold uppercase tracking-widest">Blueprint Estratégico: {customerProfileName || 'Investidor'}</span>
+                             </div>
+                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">Análise da Mesa de Negócios</h2>
+                             <p className="text-slate-700 mt-4 text-lg leading-relaxed font-medium">
+                                {aiResponseText}
+                             </p>
+                         </div>
+                         
+                         {/* Share Action */}
+                         <button 
+                            onClick={handleShare}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors text-slate-600 font-bold text-sm whitespace-nowrap active:scale-95"
+                         >
+                             {isShared ? (
+                                 <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                    <span>Copiado!</span>
+                                 </>
+                             ) : (
+                                 <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                    <span>Compartilhar Dossiê</span>
+                                 </>
+                             )}
+                         </button>
                      </div>
-                     <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">Análise da Mesa de Negócios</h2>
-                     <p className="text-slate-700 mt-4 text-lg leading-relaxed font-medium">
-                        {aiResponseText}
-                     </p>
+
+                     <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                         <div className="text-sm text-amber-900 text-left">
+                             <strong>Aviso Importante:</strong> Esta é uma simulação gratuita baseada em inteligência de dados. Os valores e disponibilidade de vagas em grupos são dinâmicos e precisam ser travados com um especialista.
+                         </div>
+                     </div>
                 </div>
 
                 {/* CAROUSEL OF PLAN CARDS (TOP 3 ONLY) */}
@@ -220,20 +274,21 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
                      </div>
                 </div>
 
-                {/* Simulator Section */}
+                {/* Simulator Section & Sensitivity Matrix (NEW LAYOUT) */}
                 {recommendedPlans.length > 1 && (
-                    <div className="mb-12 p-6 bg-white rounded-[2rem] border border-slate-200 shadow-lg shadow-slate-200/50">
-                        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                            <div className="flex-grow max-w-2xl">
+                    <div className="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                         {/* Input / Simulator */}
+                        <div className="p-6 bg-white rounded-[2rem] border border-slate-200 shadow-lg shadow-slate-200/50 flex flex-col justify-center">
+                            
                                 <h4 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
                                      <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span>
                                      Simulador de Aceleração
                                 </h4>
                                 <p className="text-slate-600 mb-6 font-medium">
-                                    Tem capital para ofertar lance? Insira abaixo para recalcular o prazo estimado de todos os planos.
+                                    Insira seu potencial de lance para recalcular todos os cenários da página.
                                 </p>
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <div className="relative flex-grow">
+                                <div className="space-y-4">
+                                    <div className="relative">
                                         <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 font-bold">R$</span>
                                         <input
                                             type="number"
@@ -245,7 +300,7 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
                                     </div>
                                     
                                     {fgtsBalance > 0 && (
-                                        <div className="flex items-center px-5 py-2 bg-blue-50 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => setUseFgts(!useFgts)}>
+                                        <div className="flex items-center px-5 py-3 bg-blue-50 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => setUseFgts(!useFgts)}>
                                             <input 
                                                 type="checkbox" 
                                                 checked={useFgts}
@@ -254,16 +309,17 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
                                             />
                                             <div className="ml-3">
                                                 <span className="block text-sm font-bold text-blue-800">
-                                                    Usar FGTS
-                                                </span>
-                                                <span className="block text-xs text-blue-600">
-                                                    + {formatCurrency(fgtsBalance)}
+                                                    Usar FGTS (+ {formatCurrency(fgtsBalance)})
                                                 </span>
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                        </div>
+
+                        {/* NEW COMPONENT: Sensitivity Matrix */}
+                        <div>
+                             <SensitivityMatrix plan={top3Plans[0]} currentBid={debouncedTotalBid} />
                         </div>
                     </div>
                 )}
@@ -303,15 +359,29 @@ export const DecisionPanel: React.FC<DecisionPanelProps> = ({ userProfile, aiRes
                     </Suspense>
                  )}
 
-
-                <div className="text-center mt-12 pb-10 border-t border-slate-200 pt-10">
-                    <button
-                        onClick={onRestart}
-                        className="text-sm font-bold text-slate-400 hover:text-cyan-600 transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Refazer Análise
-                    </button>
+                 {/* FINAL CTA SECTION - SPECIALIST HANDOFF */}
+                <div className="mt-16 bg-slate-900 rounded-3xl p-8 md:p-12 text-center shadow-2xl shadow-blue-900/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500 rounded-full blur-[80px] opacity-10 pointer-events-none"></div>
+                    <div className="relative z-10">
+                        <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">Gostou da estratégia?</h3>
+                        <p className="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
+                            Estes grupos possuem vagas limitadas. Para garantir a condição simulada, um Especialista precisa validar sua documentação e travar a cota junto à administradora.
+                        </p>
+                        <div className="flex flex-col sm:flex-row justify-center gap-4">
+                             <button
+                                onClick={onRestart}
+                                className="px-8 py-4 rounded-xl border border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-all"
+                            >
+                                Refazer Simulação
+                            </button>
+                            <button
+                                onClick={() => handleSelectPlan(top3Plans[0])} // Opens modal for top plan
+                                className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold shadow-lg shadow-cyan-900/50 transition-all hover:scale-105"
+                            >
+                                Solicitar Validação com Especialista
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {contractingPlan && (

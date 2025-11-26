@@ -1,5 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { findAvailablePlans } from '../services/consorcioService'; // Import to access DB stats
+import dbData from '../data/consorcio_db.json'; // Direct access for quick stats
 
 interface HeroProps {
   onStart: () => void;
@@ -24,6 +26,41 @@ const StatItem: React.FC<{ label: string; value: string }> = ({ label, value }) 
 
 export const Hero: React.FC<HeroProps> = ({ onStart }) => {
   const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState({ plans: 0, volume: 0, savings: 42 });
+
+  useEffect(() => {
+      // Calculate real stats from the integrated DB
+      const totalPlans = dbData.length;
+      const totalVolume = dbData.reduce((acc: number, item: any) => acc + (Number(item.credit) || 0), 0);
+      
+      // Animation effect for numbers
+      let start = 0;
+      const duration = 2000;
+      const stepTime = 50;
+      const steps = duration / stepTime;
+      const incrementPlans = totalPlans / steps;
+      
+      const timer = setInterval(() => {
+          start += 1;
+          setStats(prev => ({
+              ...prev,
+              plans: Math.min(totalPlans, Math.floor(prev.plans + incrementPlans)),
+              volume: totalVolume // Keep volume static for now or animate similarly
+          }));
+          if (start >= steps) clearInterval(timer);
+      }, stepTime);
+
+      // Set final exact values
+      setStats({ plans: totalPlans, volume: totalVolume, savings: 42 });
+
+      return () => clearInterval(timer);
+  }, []);
+
+  const formatVolume = (val: number) => {
+      if (val > 1000000000) return `${(val / 1000000000).toFixed(1)}Bi`;
+      if (val > 1000000) return `${(val / 1000000).toFixed(0)}Mi`;
+      return `${(val / 1000).toFixed(0)}k`;
+  };
 
   const handleShare = async () => {
     const shareData = {
@@ -72,7 +109,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
             </span>
-            ECONOMIA INTELIGENTE
+            INTELIGÊNCIA DE MERCADO ATIVA
           </div>
           
           {/* Title - Simple & Direct */}
@@ -129,7 +166,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-2.29-6.417-5.382-7.433z"/></svg>
                      </div>
                      <span className="font-bold text-slate-700 text-sm md:text-base">
-                        Segurança Total
+                        Segurança Total (Porto/Mapfre)
                      </span>
                 </div>
                 <div className="flex items-center gap-2.5 group cursor-default">
@@ -164,11 +201,11 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
             </p>
         </div>
 
-        {/* Features Grid - Simplified Text */}
+        {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150 px-4">
           <FeatureCard 
             title="Lances Inteligentes" 
-            description="Nossa tecnologia analisa milhares de grupos para encontrar onde você tem mais chance de ser contemplado rápido, pagando menos."
+            description="Nossa tecnologia varre grupos da Porto Seguro e Bancorbrás para encontrar onde sua oferta de lance tem probabilidade máxima de contemplação."
             icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
           />
           <FeatureCard 
@@ -177,22 +214,22 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
             icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
           <FeatureCard 
-            title="Tudo Digital" 
-            description="Esqueça a papelada. Cuidamos de toda a burocracia para você, da escolha do plano até a liberação do dinheiro."
+            title="Processo Digital" 
+            description="Da simulação à assinatura do contrato, orquestramos tudo digitalmente. Sem papelada, sem filas, apenas estratégia."
             icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
         </div>
         
-        {/* Stats Bar */}
+        {/* Dynamic Stats Bar */}
         <div className="mt-20 w-full max-w-4xl bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 animate-in fade-in duration-1000 delay-300 mx-4">
             <div className="flex flex-col gap-2 text-center md:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Junte-se a 12.000+ <br/>brasileiros inteligentes</h3>
-                <p className="text-sm md:text-base text-slate-500 font-medium">Milhões economizados em juros bancários.</p>
+                <h3 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Base de Inteligência<br/>Atualizada</h3>
+                <p className="text-sm md:text-base text-slate-500 font-medium">Dados oficiais processados em tempo real.</p>
             </div>
             <div className="flex gap-6 md:gap-12">
-                <StatItem label="Planos Ativos" value="3.4k" />
-                <StatItem label="Sonhos Realizados" value="850+" />
-                <StatItem label="Economia Média" value="42%" />
+                <StatItem label="Grupos Analisados" value={`${stats.plans > 0 ? stats.plans : '...'}`} />
+                <StatItem label="Volume de Crédito" value={`R$ ${formatVolume(stats.volume)}`} />
+                <StatItem label="Economia Média" value={`${stats.savings}%`} />
             </div>
         </div>
 

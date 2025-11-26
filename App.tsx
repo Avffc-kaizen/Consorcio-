@@ -14,6 +14,7 @@ const DecisionPanel = React.lazy(() => import('./components/DecisionPanel').then
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const Login = React.lazy(() => import('./components/Login').then(module => ({ default: module.Login })));
 const FloatingAssistant = React.lazy(() => import('./components/FloatingAssistant').then(module => ({ default: module.FloatingAssistant })));
+const DeveloperHub = React.lazy(() => import('./components/DeveloperHub').then(module => ({ default: module.DeveloperHub })));
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -191,6 +192,8 @@ const App: React.FC = () => {
             setFetchedPlans(plans);
 
             if (plans.length === 0) {
+                // If strictly no plans found, try to broaden automatically or ask user
+                // For now, let's inform user but try to find alternatives in the background in future
                 nextAiMessage = {
                     id: (Date.now() + 2).toString(),
                     sender: 'ai',
@@ -342,47 +345,20 @@ const App: React.FC = () => {
         case 'bid_analysis':
             updatedProfile.bidCapacity = response.payload;
             
-            // CRITICAL CHANGE: LEAD CAPTURE IS NOW MANDATORY BEFORE PROCESSING
-            nextStep = 'lead_capture';
+            // REMOVED LEAD CAPTURE - GO STRAIGHT TO PROCESSING
+            // Making the tool feel like a free utility, lead capture happens at the end (conversion).
+            nextStep = 'processing';
             nextAiMessage = {
                 id: (Date.now() + 1).toString(),
                 sender: 'ai',
-                text: 'Análise preliminar concluída. Identifiquei 3 cenários de alta viabilidade.\n\nPara gerar seu Dossiê Estratégico completo e liberar o contato direto do Consultor Sênior (WhatsApp), preciso apenas registrar a titularidade do estudo.',
+                text: 'Análise preliminar concluída. Cruzando dados com as administradoras Porto Seguro, Mapfre e Bancorbrás para encontrar sua cota ideal...',
                 options: [], 
-                step: 'lead_capture'
+                step: 'processing'
             };
-            break;
 
-        case 'lead_capture':
-            // User submitted the LeadCaptureForm
-            if (response.payload) {
-                const contactData = response.payload;
-                updatedProfile.contact = {
-                    name: contactData.name,
-                    email: contactData.email,
-                    phone: contactData.phone
-                };
-                
-                // Now we proceed to processing
-                nextStep = 'processing';
-                nextAiMessage = {
-                    id: (Date.now() + 1).toString(),
-                    sender: 'ai',
-                    text: 'Cadastro validado. Cruzando dados com as administradoras Porto Seguro, Mapfre e Bancorbrás...',
-                    options: [], 
-                    step: 'processing'
-                };
-                
-                // Execute Analysis immediately after capture
-                await executeFinalAnalysis(updatedProfile);
-            } else {
-                 // Fallback if text was entered instead of form submission (shouldn't happen with UI)
-                 addMessage({ id: Date.now().toString(), sender: 'ai', text: 'Por favor, preencha o formulário acima para liberar o acesso.', step: 'lead_capture' });
-                 setIsLoading(false);
-                 return;
-            }
+            // Execute immediately
+            await executeFinalAnalysis(updatedProfile);
             break;
-
       }
     } catch (e) {
         console.error(e);
@@ -407,6 +383,13 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Hero onStart={startDiagnosis} />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/admin" element={
+                isAuthenticated ? (
+                    <div className="container mx-auto p-4"><DeveloperHub /></div>
+                ) : (
+                    <Navigate to="/login" replace />
+                )
+            } />
             <Route path="/chat" element={
               <div className="container mx-auto px-4 py-8 flex justify-center h-[calc(100vh-80px)]">
                 <div className="w-full max-w-2xl h-full">

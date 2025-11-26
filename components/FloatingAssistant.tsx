@@ -4,6 +4,7 @@ import type { RecommendedPlan } from '../services/geminiService';
 import type { UserProfile } from '../types';
 import { trackMetaEvent } from '../services/metaService';
 import { resolveObjectionWithAI } from '../services/geminiService';
+import dbData from '../data/consorcio_db.json'; // Import DB for stats
 
 interface FloatingAssistantProps {
     bestPlan?: RecommendedPlan;
@@ -28,7 +29,8 @@ export const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ bestPlan, 
             setIsTyping(true);
             // Simulate AI typing initial hook
             setTimeout(() => {
-                const initialHook = `Analisei estrategicamente mais de 1.400 grupos. O ${bestPlan.planName} da ${bestPlan.provider} é uma anomalia estatística a seu favor. Como deseja prosseguir?`;
+                const totalAnalyzed = dbData.length > 0 ? dbData.length : 1400;
+                const initialHook = `Analisei estrategicamente mais de ${totalAnalyzed} grupos hoje. O ${bestPlan.planName} da ${bestPlan.provider} é uma anomalia estatística a seu favor. Como deseja prosseguir?`;
                 setAiMessage(initialHook);
                 setIsTyping(false);
             }, 1200);
@@ -196,7 +198,7 @@ O Consultor IA removeu minhas dúvidas. Quero reservar a cota.`;
                                 <button 
                                     type="submit"
                                     disabled={!userObjection.trim() || isTyping}
-                                    className="absolute right-1.5 top-1.5 p-2 bg-cyan-600 rounded-lg text-white hover:bg-cyan-500 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                                    className="absolute right-1.5 top-1.5 p-2 bg-cyan-600 rounded-lg text-white hover:bg-cyan-50 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shadow-sm"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                 </button>

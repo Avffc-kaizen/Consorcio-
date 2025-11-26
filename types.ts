@@ -138,3 +138,26 @@ export interface EtlPipelineStatus {
     lastRun: string | null;
     totalIngested: number;
 }
+
+// --- GAMIFICATION TYPES ---
+
+export type WeeklyQuoteType = 'Motivacional' | 'Estratégica' | 'Divina' | 'Financeira';
+
+export interface WeeklyQuote {
+  id: string;
+  text: string;
+  author: string;
+  type: WeeklyQuoteType;
+  unlockedAt?: string; // Date ISO string
+}
+
+export interface GamificationProfile {
+  level: number;
+  levelTitle: string; // e.g., "Aprendiz", "Estrategista", "Magnata"
+  currentPoints: number; // Pontos de Alavancagem (ALV)
+  nextLevelThreshold: number;
+  streakDays: number; // Dias consecutivos de login/atividade
+  lastActivityDate: string;
+  unlockedQuotes: WeeklyQuote[];
+  nextQuoteUnlockDate: string; // When the next quote is available
+}
